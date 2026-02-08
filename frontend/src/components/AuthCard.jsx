@@ -2,21 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const splitName = (fullName) => {
-  if (!fullName) return { firstName: '', lastName: '' };
-  const parts = fullName.trim().split(/\s+/);
-  return {
-    firstName: parts.shift() || '',
-    lastName: parts.join(' ') || ''
-  };
-};
-
 const AuthCard = ({ initialTab = 'login' }) => {
   const [tab, setTab] = useState(initialTab); // 'login' or 'register'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+
+  // Split name state
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
   const [remember, setRemember] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -51,8 +46,6 @@ const AuthCard = ({ initialTab = 'login' }) => {
       setError('Passwords do not match');
       return;
     }
-
-    const { firstName, lastName } = splitName(fullName);
 
     const payload = {
       firstName,
@@ -170,10 +163,23 @@ const AuthCard = ({ initialTab = 'login' }) => {
               <input
                 className="input"
                 type="text"
-                placeholder="Full Name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                placeholder="First Name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
                 required
+              />
+            </div>
+
+            <div className="input-with-icon">
+              <span className="icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </span>
+              <input
+                className="input"
+                type="text"
+                placeholder="Last Name (Optional)"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
               />
             </div>
 

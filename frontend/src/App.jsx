@@ -37,7 +37,7 @@ function App() {
           <main>
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/organizer/reset-password" element={<OrganizerResetRequest />} />

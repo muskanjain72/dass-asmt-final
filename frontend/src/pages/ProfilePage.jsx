@@ -3,18 +3,22 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 
 const ProfilePage = () => {
-    const { user, login } = useAuth(); // login used here to update local user state if needed
+    const { user } = useAuth();
     const [formData, setFormData] = useState({
         firstName: '', lastName: '', contactNumber: '', collegeName: '',
         // Organizer fields
-        organizerName: '', category: '', description: '', contactEmail: '', discordWebhookUrl: ''
+        organizerName: '', category: '', description: '', contactEmail: '', discordWebhookUrl: '',
+        // Password update
+        password: ''
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (user) {
-            setFormData({
+            setFormData(prev => ({
+                ...prev,
                 firstName: user.firstName || '',
                 lastName: user.lastName || '',
                 contactNumber: user.contactNumber || '',
@@ -23,8 +27,9 @@ const ProfilePage = () => {
                 category: user.category || '',
                 description: user.description || '',
                 contactEmail: user.contactEmail || '',
-                discordWebhookUrl: user.discordWebhookUrl || ''
-            });
+                discordWebhookUrl: user.discordWebhookUrl || '',
+                password: '' // Reset password field on load
+            }));
         }
     }, [user]);
 
@@ -36,102 +41,219 @@ const ProfilePage = () => {
         e.preventDefault();
         setLoading(true);
         setMessage('');
+        setError('');
+
         try {
-            const { data } = await api.put('/users/profile', formData);
+            // Filter out empty password if not changing
+            const payload = { ...formData };
+            if (!payload.password) delete payload.password;
+
+            const { data } = await api.put('/users/profile', payload);
             setMessage('Profile updated successfully');
-            // Optimistically update or re-fetch?
-            // Assuming context might need refresh, or we just rely on local state for now
-            // Ideally call a function exposed by AuthProvider to refresh user
-        } catch (error) {
-            setMessage('Error updating profile');
+            // Clear password field after successful update
+            setFormData(prev => ({ ...prev, password: '' }));
+        } catch (err) {
+            setError(err.response?.data?.message || 'Error updating profile');
         } finally {
             setLoading(false);
         }
     };
 
-    if (!user) return <div>Please login</div>;
+    if (!user) return <div className="profile-container">Please login to view profile.</div>;
+
+    const isParticipant = user.role === 'participant';
 
     return (
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">My Profile</h1>
+        <div className="profile-container">
+            <div className="profile-header">
+                <h1 className="profile-title">Profile</h1>
+                <p className="profile-subtitle">Manage your name, password and account settings.</p>
+            </div>
 
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900">User Information</h3>
-                    <p className="mt-1 max-w-2xl text-sm text-gray-500">Personal details and settings.</p>
+            {message && <div className="success-message">{message}</div>}
+            {error && <div className="error-message">{error}</div>}
+
+            <form onSubmit={handleSubmit} className="profile-card">
+
+                {/* Avatar Section */}
+                <div className="profile-row">
+                    <label className="profile-label">Profile photo</label>
+                    <div className="profile-avatar-section">
+                        <div className="profile-avatar">
+                            {/* Initials or Icon */}
+                            {isParticipant
+                                ? (formData.firstName?.[0] || 'U')
+                                : (formData.organizerName?.[0] || 'O')}
+                        </div>
+                        <button type="button" className="btn-upload">Upload photo</button>
+                    </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="px-4 py-5 sm:p-6 space-y-6">
-                    {/* Common Non-Editable */}
-                    <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                        <div className="sm:col-span-4">
-                            <label className="block text-sm font-medium text-gray-700">Email (Non-editable)</label>
-                            <input type="text" disabled value={user.email} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md bg-gray-50 p-2 border" />
-                            <span className="text-xs text-gray-500 capitalize">Role: {user.role}</span>
+                {/* Name Section */}
+                <div className="profile-row">
+                    <label className="profile-label">
+                        {isParticipant ? 'Full Name' : 'Organizer Name'}
+                    </label>
+                    <div className="profile-input-group">
+                        {isParticipant ? (
+                            <>
+                                <div className="profile-input-wrapper">
+                                    <input
+                                        type="text"
+                                        name="firstName"
+                                        placeholder="First Name"
+                                        value={formData.firstName}
+                                        onChange={handleChange}
+                                        className="profile-input"
+                                    />
+                                </div>
+                                <div className="profile-input-wrapper">
+                                    <input
+                                        type="text"
+                                        name="lastName"
+                                        placeholder="Last Name"
+                                        value={formData.lastName}
+                                        onChange={handleChange}
+                                        className="profile-input"
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <div className="profile-input-wrapper">
+                                <input
+                                    type="text"
+                                    name="organizerName"
+                                    value={formData.organizerName}
+                                    onChange={handleChange}
+                                    className="profile-input"
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Email Section (Read-Only) */}
+                <div className="profile-row">
+                    <label className="profile-label">Email</label>
+                    <div className="profile-input-wrapper">
+                        <input
+                            type="email"
+                            value={user.email}
+                            disabled
+                            className="profile-input"
+                        />
+                    </div>
+                </div>
+
+                {/* Password Section */}
+                <div className="profile-row">
+                    <label className="profile-label">Password</label>
+                    <div className="profile-input-wrapper">
+                        <input
+                            type="password"
+                            name="password"
+                            placeholder="Enter new password to change"
+                            value={formData.password}
+                            onChange={handleChange}
+                            className="profile-input"
+                        />
+                    </div>
+                </div>
+
+                {/* Phone Section */}
+                <div className="profile-row">
+                    <label className="profile-label">Phone</label>
+                    <div className="profile-input-wrapper">
+                        <input
+                            type="text"
+                            name="contactNumber"
+                            placeholder="+91 XXXXX XXXXX"
+                            value={formData.contactNumber}
+                            onChange={handleChange}
+                            className="profile-input"
+                        />
+                    </div>
+                </div>
+
+                {/* Role Specific Fields */}
+                {isParticipant ? (
+                    <div className="profile-row">
+                        <label className="profile-label">College/Organization</label>
+                        <div className="profile-input-wrapper">
+                            <input
+                                type="text"
+                                name="collegeName"
+                                value={formData.collegeName}
+                                onChange={handleChange}
+                                className="profile-input"
+                            />
                         </div>
                     </div>
-
-                    {/* Participant Fields */}
-                    {user.role === 'participant' && (
-                        <>
-                            <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                                <div className="sm:col-span-3">
-                                    <label className="block text-sm font-medium text-gray-700">First name</label>
-                                    <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md border p-2" />
-                                </div>
-                                <div className="sm:col-span-3">
-                                    <label className="block text-sm font-medium text-gray-700">Last name</label>
-                                    <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md border p-2" />
-                                </div>
-                                <div className="sm:col-span-3">
-                                    <label className="block text-sm font-medium text-gray-700">Contact Number</label>
-                                    <input type="text" name="contactNumber" value={formData.contactNumber} onChange={handleChange} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md border p-2" />
-                                </div>
-                                <div className="sm:col-span-3">
-                                    <label className="block text-sm font-medium text-gray-700">College Name</label>
-                                    <input type="text" name="collegeName" value={formData.collegeName} onChange={handleChange} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md border p-2" />
-                                </div>
+                ) : (
+                    <>
+                        <div className="profile-row">
+                            <label className="profile-label">Category</label>
+                            <div className="profile-input-wrapper">
+                                <input
+                                    type="text"
+                                    name="category"
+                                    placeholder="e.g. Technical, Cultural"
+                                    value={formData.category}
+                                    onChange={handleChange}
+                                    className="profile-input"
+                                />
                             </div>
-                        </>
-                    )}
-
-                    {/* Organizer Fields */}
-                    {user.role === 'organizer' && (
-                        <>
-                            <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                                <div className="sm:col-span-3">
-                                    <label className="block text-sm font-medium text-gray-700">Organizer / Club Name</label>
-                                    <input type="text" name="organizerName" value={formData.organizerName} onChange={handleChange} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md border p-2" />
-                                </div>
-                                <div className="sm:col-span-3">
-                                    <label className="block text-sm font-medium text-gray-700">Category</label>
-                                    <input type="text" name="category" value={formData.category} onChange={handleChange} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md border p-2" />
-                                </div>
-                                <div className="sm:col-span-6">
-                                    <label className="block text-sm font-medium text-gray-700">Description</label>
-                                    <textarea name="description" rows={3} value={formData.description} onChange={handleChange} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md border p-2" />
-                                </div>
-                                <div className="sm:col-span-4">
-                                    <label className="block text-sm font-medium text-gray-700">Public Contact Email</label>
-                                    <input type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md border p-2" />
-                                </div>
-                                <div className="sm:col-span-6">
-                                    <label className="block text-sm font-medium text-gray-700">Discord Webhook URL</label>
-                                    <input type="text" name="discordWebhookUrl" value={formData.discordWebhookUrl} onChange={handleChange} placeholder="https://discord.com/api/webhooks/..." className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md border p-2" />
-                                    <p className="mt-1 text-xs text-gray-500">Events will automatically be posted to this channel when published.</p>
-                                </div>
+                        </div>
+                        <div className="profile-row">
+                            <label className="profile-label">Description</label>
+                            <div className="profile-input-wrapper">
+                                <textarea
+                                    name="description"
+                                    rows="3"
+                                    value={formData.description}
+                                    onChange={handleChange}
+                                    className="profile-input"
+                                    style={{ resize: 'vertical' }}
+                                />
                             </div>
-                        </>
-                    )}
+                        </div>
+                        <div className="profile-row">
+                            <label className="profile-label">Public Email</label>
+                            <div className="profile-input-wrapper">
+                                <input
+                                    type="email"
+                                    name="contactEmail"
+                                    value={formData.contactEmail}
+                                    onChange={handleChange}
+                                    className="profile-input"
+                                />
+                            </div>
+                        </div>
+                        <div className="profile-row">
+                            <label className="profile-label">Discord Webhook</label>
+                            <div className="profile-input-wrapper">
+                                <input
+                                    type="text"
+                                    name="discordWebhookUrl"
+                                    placeholder="https://discord.com/api/webhooks/..."
+                                    value={formData.discordWebhookUrl}
+                                    onChange={handleChange}
+                                    className="profile-input"
+                                />
+                            </div>
+                        </div>
+                    </>
+                )}
 
-                    <div className="flex justify-end">
-                        <button type="submit" disabled={loading} className="bg-indigo-600 border border-transparent rounded-md shadow-sm py-2 px-4 inline-flex justify-center text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            {loading ? 'Saving...' : 'Save Changes'}
-                        </button>
-                    </div>
-                    {message && <p className={`text-sm ${message.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>{message}</p>}
-                </form>
-            </div>
+                {/* Actions */}
+                <div className="profile-actions">
+                    <button type="button" className="btn-cancel" onClick={() => window.location.reload()}>Cancel</button>
+                    <button type="submit" className="btn-save" disabled={loading}>
+                        {loading ? 'Saving...' : 'Save changes'}
+                    </button>
+                </div>
+
+            </form>
         </div>
     );
 };
