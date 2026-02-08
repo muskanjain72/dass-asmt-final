@@ -13,8 +13,9 @@ const Navbar = () => {
     return (
         <nav className="navbar">
             <div className="nav-container">
-                <div className="nav-left">
-                    <Link to="/" className="nav-brand">Campus Events</Link>
+                <Link to="/" className="nav-brand">Campus Events</Link>
+
+                <div className="nav-right">
                     <div className="nav-links">
                         <Link to="/events" className="nav-link">Browse Events</Link>
                         <Link to="/clubs" className="nav-link">Clubs</Link>
@@ -35,15 +36,13 @@ const Navbar = () => {
                             </>
                         )}
                     </div>
-                </div>
 
-                <div className="nav-auth">
-                    {user ? (
+                    {user && (
                         <div className="user-controls">
-                            <Link to="/profile" className="btn btn-outline">Profile</Link>
+                            <Link to="/profile" className="btn btn-primary">Profile</Link>
                             <button onClick={handleLogout} className="btn btn-primary">Logout</button>
                         </div>
-                    ) : null}
+                    )}
                 </div>
             </div>
         </nav>

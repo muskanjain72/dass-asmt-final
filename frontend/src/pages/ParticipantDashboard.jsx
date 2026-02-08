@@ -49,7 +49,7 @@ const ParticipantDashboard = () => {
                 return event.type === 'merchandise' && !isCancelled;
             case 'Completed':
                 return isCompleted;
-            case 'Cancelled':
+            case 'Cancelled/Rejected':
                 return isCancelled;
             default:
                 return true;
@@ -157,7 +157,7 @@ const ParticipantDashboard = () => {
 
                 <div className="saas-card overflow-hidden !p-0">
                     <div className="border-b border-gray-100 px-6 pt-4 flex gap-8 overflow-x-auto scroller-hide">
-                        {['Normal', 'Merchandise', 'Completed', 'Cancelled'].map(tab => (
+                        {['Normal', 'Merchandise', 'Completed', 'Cancelled/Rejected'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -177,10 +177,10 @@ const ParticipantDashboard = () => {
                             <thead>
                                 <tr>
                                     <th>Event Name</th>
-                                    <th>Type</th>
+                                    <th>Event Type</th>
                                     <th>Organizer</th>
-                                    <th>Status</th>
-                                    <th>Team</th>
+                                    <th>Participation Status</th>
+                                    <th>Team Name</th>
                                     <th>Ticket ID</th>
                                 </tr>
                             </thead>
