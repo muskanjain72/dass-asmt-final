@@ -44,12 +44,7 @@ const Navbar = () => {
                             <Link to="/profile" className="btn btn-outline">Profile</Link>
                             <button onClick={handleLogout} className="btn btn-primary">Logout</button>
                         </div>
-                    ) : (
-                        <div className="auth-links">
-                            <Link to="/login" className="btn btn-link">Login</Link>
-                            <Link to="/register" className="btn btn-primary">Register</Link>
-                        </div>
-                    )}
+                    ) : null}
                 </div>
             </div>
         </nav>

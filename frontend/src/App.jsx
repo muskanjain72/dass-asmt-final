@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import './App.css';
 import Navbar from './components/Navbar';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -94,7 +95,7 @@ function App() {
               <Route
                 path="/profile"
                 element={
-                  <ProtectedRoute allowedRoles={["participant","organizer","admin"]}>
+                  <ProtectedRoute allowedRoles={["participant", "organizer", "admin"]}>
                     <ProfilePage />
                   </ProtectedRoute>
                 }
