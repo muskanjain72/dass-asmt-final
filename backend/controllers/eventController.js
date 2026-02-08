@@ -55,6 +55,7 @@ const getEvents = async (req, res) => {
         let query = { status: { $in: ['published', 'ongoing'] } };
 
         if (keyword) {
+            // Fuzzy search using regex on name and description
             query = {
                 ...query,
                 $or: [
@@ -78,11 +79,17 @@ const getEvents = async (req, res) => {
             query.eligibility = { $in: [eligibility, 'All'] };
         }
 
+        // Trending filter logic: top 5 in last 24h
+        if (sort === 'trending') {
+            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            query.createdAt = { $gte: yesterday };
+        }
+
         let eventsQuery = Event.find(query).populate('organizer', 'organizerName');
 
         // Sorting
         if (sort === 'trending') {
-            eventsQuery = eventsQuery.sort({ registeredCount: -1 });
+            eventsQuery = eventsQuery.sort({ registeredCount: -1 }).limit(5);
         } else {
             eventsQuery = eventsQuery.sort({ startDate: 1 });
         }

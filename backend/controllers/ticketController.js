@@ -59,7 +59,7 @@ const registerForEvent = async (req, res) => {
             ticketId: generateTicketId(),
             participantId: userId,
             eventId: eventId,
-            status: 'registered', 
+            status: 'registered',
             // Only generate QR if free or after payment. 
             // For now, generate placeholder or empty if pending.
             qrCodeData: (event.registrationFee > 0 || event.type === 'merchandise') ? '' : `EVENT:${eventId}-USER:${userId}`,
@@ -70,17 +70,18 @@ const registerForEvent = async (req, res) => {
 
         await newTicket.save();
 
-        // 6. Update Event Counts
+        // 6. Update Event Counts & Stock
         if (event.type === 'normal') {
             event.registeredCount += 1;
-             await event.save();
         } else if (event.type === 'merchandise') {
-            // DO NOT DECREMENT STOCK YET if workflow requires approval
-            // Only decrement on Approval
+            // Decrement stock immediately as requested for purchase
+            event.merchandiseStock = Math.max(0, event.merchandiseStock - 1);
         }
+        await event.save();
 
-        // 7. Mock Email Send (can be added here)
-        // sendConfirmationEmail(req.user.email, newTicket);
+        // 7. Email Workflow (Placeholder/Mock)
+        console.log(`[EMAIL] Sending confirmation to ${req.user.email} for Ticket ID: ${newTicket.ticketId}`);
+        // In a real app: await sendConfirmationEmail(req.user.email, newTicket);
 
         res.status(201).json({
             message: event.type === 'merchandise' ? 'Purchase successful' : 'Registration successful',
@@ -222,23 +223,23 @@ const approveOrder = async (req, res) => {
         }
 
         if (ticket.paymentStatus === 'completed') {
-             return res.status(400).json({ message: 'Order already approved' });
+            return res.status(400).json({ message: 'Order already approved' });
         }
 
         // Decrement Stock ATOMICALLY to be safe, though simple decrement here
         if (event.type === 'merchandise') {
-             if (event.merchandiseStock <= 0) {
-                 return res.status(400).json({ message: 'Stock exhausted, cannot approve.' });
-             }
-             event.merchandiseStock -= 1; // Assuming qty 1
-             await event.save();
+            if (event.merchandiseStock <= 0) {
+                return res.status(400).json({ message: 'Stock exhausted, cannot approve.' });
+            }
+            event.merchandiseStock -= 1; // Assuming qty 1
+            await event.save();
         }
 
         ticket.paymentStatus = 'completed';
         ticket.status = 'confirmed'; // or registered
         // Ensure QR is set (it might have been placeholder or empty)
         ticket.qrCodeData = `EVENT:${event._id}-USER:${ticket.participantId}-TKT:${ticket.ticketId}`;
-        
+
         await ticket.save();
 
         // Send Email logic would be here
@@ -288,23 +289,23 @@ const scanTicket = async (req, res) => {
 
         // Find Ticket
         if (manualTicketId) {
-             ticket = await Ticket.findOne({ ticketId: manualTicketId }).populate('eventId participantId');
+            ticket = await Ticket.findOne({ ticketId: manualTicketId }).populate('eventId participantId');
         } else if (qrPayload) {
-             // Basic parsing assume payload contains ticketId at end or is unique enough. 
-             // Our format: `EVENT:ID-USER:ID-TKT:ID`
-             // Simple regex or split could work. Or if we just trust scanning exact string if stored equal.
-             // Let's rely on extracting TKT ID or creating a more robust lookup.
-             // If payload IS the ticketId or contains it.
-             // For strict security, parse the payload.
-             // Example payload: "EVENT:67a3...-USER:67a3...-TKT:TKT-1A2B..."
-             const parts = qrPayload.split('-TKT:');
-             if (parts.length > 1) {
-                 const tId = parts[1];
-                 ticket = await Ticket.findOne({ ticketId: tId }).populate('eventId participantId');
-             } else {
-                 // Fallback if payload implies direct search
-                 ticket = await Ticket.findOne({ qrCodeData: qrPayload }).populate('eventId participantId');
-             }
+            // Basic parsing assume payload contains ticketId at end or is unique enough. 
+            // Our format: `EVENT:ID-USER:ID-TKT:ID`
+            // Simple regex or split could work. Or if we just trust scanning exact string if stored equal.
+            // Let's rely on extracting TKT ID or creating a more robust lookup.
+            // If payload IS the ticketId or contains it.
+            // For strict security, parse the payload.
+            // Example payload: "EVENT:67a3...-USER:67a3...-TKT:TKT-1A2B..."
+            const parts = qrPayload.split('-TKT:');
+            if (parts.length > 1) {
+                const tId = parts[1];
+                ticket = await Ticket.findOne({ ticketId: tId }).populate('eventId participantId');
+            } else {
+                // Fallback if payload implies direct search
+                ticket = await Ticket.findOne({ qrCodeData: qrPayload }).populate('eventId participantId');
+            }
         }
 
         if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found' });
@@ -313,22 +314,22 @@ const scanTicket = async (req, res) => {
         // Ideally we pass eventId in body to check if this ticket belongs to THIS event being scanned
         // But if just verifying any ticket:
         if (ticket.eventId.organizer.toString() !== req.user._id.toString()) {
-             return res.status(401).json({ success: false, message: 'Ticket does not belong to your events' });
+            return res.status(401).json({ success: false, message: 'Ticket does not belong to your events' });
         }
 
         // Check if Paid (if merch) or Approved
         if ((ticket.eventId.type === 'merchandise' || ticket.eventId.registrationFee > 0) && ticket.paymentStatus !== 'completed') {
-             return res.status(400).json({ success: false, message: 'Payment pending/rejected', ticket });
+            return res.status(400).json({ success: false, message: 'Payment pending/rejected', ticket });
         }
 
         // Check Attendance
         if (ticket.scannedAt) {
-             return res.status(400).json({ 
-                 success: false, 
-                 message: 'Already Scanned', 
-                 scannedAt: ticket.scannedAt,
-                 participant: ticket.participantId 
-             });
+            return res.status(400).json({
+                success: false,
+                message: 'Already Scanned',
+                scannedAt: ticket.scannedAt,
+                participant: ticket.participantId
+            });
         }
 
         // Mark Attendance
@@ -337,10 +338,10 @@ const scanTicket = async (req, res) => {
         ticket.status = 'attended'; // Optional update status
         await ticket.save();
 
-        res.json({ 
-            success: true, 
-            message: 'Verified Successfully', 
-            participant: ticket.participantId 
+        res.json({
+            success: true,
+            message: 'Verified Successfully',
+            participant: ticket.participantId
         });
 
     } catch (error) {
