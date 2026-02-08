@@ -16,7 +16,7 @@ const AuthCard = ({ initialTab = 'login' }) => {
   const [participantType, setParticipantType] = useState('Student');
   const [isIIIT, setIsIIIT] = useState(false);
 
-  const [remember, setRemember] = useState(true);
+  const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
