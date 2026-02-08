@@ -4,7 +4,7 @@ import api from '../api/axios';
 
 const AdminDashboard = () => {
     const [searchParams] = useSearchParams();
-    const [activeTab, setActiveTab] = useState('clubs');
+    const [activeTab, setActiveTab] = useState('dashboard');
 
     const [organizers, setOrganizers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -105,275 +105,235 @@ const AdminDashboard = () => {
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
+            {/* Removed Heading and Tab Buttons as per request */}
 
-            {/* Tabs */}
-            <div className="border-b border-gray-200 mb-6">
-                <nav className="-mb-px flex space-x-8">
-                    <button
-                        onClick={() => setActiveTab('clubs')}
-                        className={`${activeTab === 'clubs'
-                            ? 'border-indigo-500 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                    >
-                        Manage Clubs & Organizers
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('password-requests')}
-                        className={`${activeTab === 'password-requests'
-                            ? 'border-indigo-500 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-                    >
-                        Password Reset Requests
-                    </button>
-                </nav>
-            </div>
-
-            {activeTab === 'clubs' ? (
-                <div className="space-y-8">
-                    {/* Add New Organizer Section */}
-                    <div className="saas-card">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="w-1 h-6 bg-purple-600 rounded-full" style={{ background: 'var(--primary-gradient)' }}></div>
-                            <h2 className="text-xl font-bold text-gray-900">Add New Club / Organizer</h2>
+            {activeTab === 'dashboard' ? (
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div className="auth-card" style={{ maxWidth: '600px', width: '100%' }}>
+                        <div className="auth-avatar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="8.5" cy="7" r="4"></circle>
+                                <line x1="20" y1="8" x2="20" y2="14"></line>
+                                <line x1="17" y1="11" x2="23" y2="11"></line>
+                            </svg>
                         </div>
 
-                        <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-700">Organizer Name</label>
-                                <input
-                                    type="text" placeholder="e.g. Google Developer Group" required
-                                    className="block w-full border-gray-200 rounded-xl shadow-sm p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none border transition-all"
-                                    value={newOrg.organizerName} onChange={e => setNewOrg({ ...newOrg, organizerName: e.target.value })}
-                                />
+                        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>Add New Club / Organizer</h2>
+                            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>Create a new organizational account for managing events.</p>
+                        </div>
+
+                        <form onSubmit={handleCreate} className="auth-form" style={{ width: '100%' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
+                                <div className="input-with-icon">
+                                    <span className="icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                    </span>
+                                    <input
+                                        className="input" type="text" placeholder="Organizer Name (Required)" required
+                                        value={newOrg.organizerName} onChange={e => setNewOrg({ ...newOrg, organizerName: e.target.value })}
+                                    />
+                                </div>
+                                <div className="input-with-icon">
+                                    <span className="icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                    </span>
+                                    <input
+                                        className="input" type="text" placeholder="Category (Optional)"
+                                        value={newOrg.category} onChange={e => setNewOrg({ ...newOrg, category: e.target.value })}
+                                    />
+                                </div>
+                                <div className="input-with-icon" style={{ gridColumn: '1 / -1' }}>
+                                    <span className="icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                    </span>
+                                    <input
+                                        className="input" type="email" placeholder="Contact Email (Public, Required)" required
+                                        value={newOrg.contactEmail} onChange={e => setNewOrg({ ...newOrg, contactEmail: e.target.value })}
+                                    />
+                                </div>
+                                <div className="input-with-icon" style={{ gridColumn: '1 / -1' }}>
+                                    <span className="icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><line x1="4" y1="21" x2="20" y2="21"></line><path d="M4 21v-16a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v16"></path><path d="M9 9h6"></path><path d="M9 13h6"></path><path d="M9 17h6"></path></svg>
+                                    </span>
+                                    <input
+                                        className="input" type="text" placeholder="Description (Optional)"
+                                        value={newOrg.description} onChange={e => setNewOrg({ ...newOrg, description: e.target.value })}
+                                    />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-700">Category</label>
-                                <input
-                                    type="text" placeholder="e.g. Technical" required
-                                    className="block w-full border-gray-200 rounded-xl shadow-sm p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none border transition-all"
-                                    value={newOrg.category} onChange={e => setNewOrg({ ...newOrg, category: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-700">Contact Email (Public)</label>
-                                <input
-                                    type="email" placeholder="contact@club.com" required
-                                    className="block w-full border-gray-200 rounded-xl shadow-sm p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none border transition-all"
-                                    value={newOrg.contactEmail} onChange={e => setNewOrg({ ...newOrg, contactEmail: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-700">Description</label>
-                                <input
-                                    type="text" placeholder="Brief description..."
-                                    className="block w-full border-gray-200 rounded-xl shadow-sm p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none border transition-all"
-                                    value={newOrg.description} onChange={e => setNewOrg({ ...newOrg, description: e.target.value })}
-                                />
-                            </div>
-                            <div className="md:col-span-2">
-                                <button
-                                    type="submit"
-                                    disabled={creating}
-                                    className="btn btn-primary w-full md:w-auto px-8"
-                                >
-                                    {creating ? 'Creating...' : 'Create Organizer Account'}
-                                </button>
-                            </div>
+
+                            <button type="submit" disabled={creating} className="btn-primary btn-block" style={{ marginTop: '24px' }}>
+                                {creating ? 'Creating...' : 'Create Organizer Account'}
+                            </button>
                         </form>
 
-                        {/* Success Card with Credentials */}
+                        {/* Success UI */}
                         {createdCredentials && (
-                            <div className="mt-8 p-6 bg-purple-50 rounded-2xl border border-purple-100 relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
-                                <div className="absolute top-0 right-0 p-4 opacity-10">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <h3 className="text-purple-900 font-bold text-lg mb-2">Organizer Created Successfully!</h3>
-                                <p className="text-sm text-purple-700 mb-6">Generated system credentials for login:</p>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-sm">
-                                        <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Login Email</p>
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-mono text-gray-900">{createdCredentials.loginEmail}</span>
-                                            <button
-                                                onClick={() => { navigator.clipboard.writeText(createdCredentials.loginEmail); alert('Email Copied!'); }}
-                                                className="text-purple-600 hover:text-purple-700 p-1"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                                                </svg>
+                            <div style={{ marginTop: '32px', width: '100%' }}>
+                                <div style={{ padding: '24px', backgroundColor: '#eff6ff', borderRadius: '12px', border: '1px solid #dbeafe' }}>
+                                    <h3 style={{ color: '#1e3a8a', fontWeight: 'bold', marginBottom: '16px', textAlign: 'center' }}>Organizer Created!</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <div>
+                                                <p style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', color: '#9ca3af', margin: 0 }}>Login Email</p>
+                                                <p style={{ fontFamily: 'monospace', color: '#111827', margin: 0, fontSize: '1.2rem' }}>{createdCredentials.loginEmail}</p>
+                                            </div>
+                                            <button onClick={() => { navigator.clipboard.writeText(createdCredentials.loginEmail); alert('Email Copied!'); }} style={{ color: '#2563eb', padding: '8px', borderRadius: '8px', border: 'none', background: 'none', cursor: 'pointer' }}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                            </button>
+                                        </div>
+                                        <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <div>
+                                                <p style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', color: '#9ca3af', margin: 0 }}>Generated Password</p>
+                                                <p style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#111827', margin: 0, fontSize: '1.2rem' }}>{createdCredentials.loginPassword}</p>
+                                            </div>
+                                            <button onClick={() => { navigator.clipboard.writeText(createdCredentials.loginPassword); alert('Password Copied!'); }} style={{ color: '#2563eb', padding: '8px', borderRadius: '8px', border: 'none', background: 'none', cursor: 'pointer' }}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-sm">
-                                        <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Generated Password</p>
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-mono text-gray-900 font-bold">{createdCredentials.loginPassword}</span>
-                                            <button
-                                                onClick={() => { navigator.clipboard.writeText(createdCredentials.loginPassword); alert('Password Copied!'); }}
-                                                className="text-purple-600 hover:text-purple-700 p-1"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <button onClick={() => setCreatedCredentials(null)} className="btn-primary btn-block" style={{ marginTop: '24px' }}>
+                                        Done
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => setCreatedCredentials(null)}
-                                    className="mt-6 text-sm text-purple-400 hover:text-purple-600 font-medium"
-                                >
-                                    Dismiss
-                                </button>
                             </div>
                         )}
                     </div>
-
-                    {/* Manage Organizers Table */}
-                    <div className="saas-card overflow-hidden !p-0">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                            <h2 className="text-xl font-bold text-gray-900">Manage Organizers</h2>
-                            <div className="text-sm text-gray-500 font-medium bg-white px-3 py-1 rounded-full border border-gray-100">
-                                Total: {organizers.length}
-                            </div>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="saas-table border-none">
-                                <thead>
-                                    <tr>
-                                        <th>Organizer Name</th>
-                                        <th>Category</th>
-                                        <th>Contact Email</th>
-                                        <th>Status</th>
-                                        <th className="text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {organizers.map((org) => (
-                                        <tr key={org._id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="font-bold text-gray-900">{org.organizerName}</td>
-                                            <td><span className="badge badge-gray">{org.category}</span></td>
-                                            <td className="text-gray-500">{org.contactEmail}</td>
-                                            <td>
-                                                <span className={`badge ${org.isActive !== false ? 'badge-green' : 'badge-red'}`}>
-                                                    {org.isActive !== false ? 'Active' : 'Disabled'}
-                                                </span>
-                                            </td>
-                                            <td className="text-right space-x-2 whitespace-nowrap">
+                </div>
+            ) : activeTab === 'clubs' ? (
+                <div className="saas-card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div style={{ padding: '32px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb' }}>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>Manage Organizers</h2>
+                        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>Active and deactivated organizational accounts.</p>
+                    </div>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="saas-table" style={{ border: 'none' }}>
+                            <thead>
+                                <tr>
+                                    <th style={{ padding: '20px 32px' }}>Organizer Name</th>
+                                    <th style={{ padding: '20px' }}>Category</th>
+                                    <th style={{ padding: '20px' }}>Contact Email</th>
+                                    <th style={{ padding: '20px' }}>Status</th>
+                                    <th style={{ padding: '20px 32px', textAlign: 'right' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody style={{ borderTop: '1px solid #f3f4f6' }}>
+                                {organizers.map((org) => (
+                                    <tr key={org._id}>
+                                        <td style={{ padding: '20px 32px', fontWeight: '900', color: '#111827' }}>{org.organizerName}</td>
+                                        <td><span className="badge badge-gray" style={{ fontWeight: 'bold', padding: '4px 12px' }}>{org.category}</span></td>
+                                        <td style={{ color: '#4b5563', fontWeight: '500' }}>{org.contactEmail}</td>
+                                        <td>
+                                            <span className={`badge ${org.isActive !== false ? 'badge-green' : 'badge-red'}`} style={{ fontWeight: '900', padding: '6px 16px', borderRadius: '9999px' }}>
+                                                {org.isActive !== false ? 'Active' : 'Disabled'}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '20px 32px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                                                 <button
                                                     onClick={() => handleToggleStatus(org._id)}
-                                                    className={`p-2 rounded-lg transition-colors ${org.isActive !== false ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
+                                                    style={{
+                                                        padding: '10px', borderRadius: '12px', transition: 'all 0.2s', border: '1px solid',
+                                                        backgroundColor: org.isActive !== false ? '#fff7ed' : '#f0fdf4',
+                                                        color: org.isActive !== false ? '#ea580c' : '#16a34a',
+                                                        borderColor: org.isActive !== false ? '#ffedd5' : '#dcfce7',
+                                                        cursor: 'pointer'
+                                                    }}
                                                     title={org.isActive !== false ? 'Disable/Archive' : 'Enable'}
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                                    </svg>
+                                                    {org.isActive !== false ? (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                                    ) : (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                                    )}
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(org._id)}
-                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    style={{
+                                                        padding: '10px', color: '#dc2626', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '12px', transition: 'all 0.2s', cursor: 'pointer'
+                                                    }}
                                                     title="Delete Permanently"
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                                                 </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {organizers.length === 0 && !loading && (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-12 text-center text-gray-500 italic">
-                                                No organizers found. Start by adding one above.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {organizers.length === 0 && !loading && (
+                                    <tr>
+                                        <td colSpan="5" style={{ padding: '80px 24px', textAlign: 'center', color: '#9ca3af', fontWeight: '500', fontStyle: 'italic' }}>
+                                            No organizers found. Use the "Dashboard" tab to add your first one.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             ) : (
-                <div className="saas-card overflow-hidden !p-0">
-                    <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="saas-card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div style={{ padding: '32px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">Password Reset Requests</h2>
-                            <p className="text-sm text-gray-500 mt-1">Review and handle organizer account recovery requests.</p>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>Password Reset Requests</h2>
+                            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>Review and handle organizer account recovery requests.</p>
                         </div>
-                        <div className="text-sm text-gray-500 font-medium bg-white px-3 py-1 rounded-full border border-gray-100">
+                        <div style={{ fontSize: '0.875rem', color: '#4b5563', fontWeight: 'bold', backgroundColor: 'white', padding: '8px 16px', borderRadius: '16px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                             Pending: {requests.filter(r => r.status === 'pending').length}
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="saas-table border-none">
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="saas-table" style={{ border: 'none' }}>
                             <thead>
                                 <tr>
-                                    <th>Organizer</th>
-                                    <th>Email</th>
-                                    <th>Reason</th>
-                                    <th>Requested</th>
-                                    <th>Status</th>
-                                    <th className="text-right">Action</th>
+                                    <th style={{ padding: '20px 32px' }}>Organizer</th>
+                                    <th style={{ padding: '20px' }}>Email</th>
+                                    <th style={{ padding: '20px' }}>Reason</th>
+                                    <th style={{ padding: '20px' }}>Requested</th>
+                                    <th style={{ padding: '20px' }}>Status</th>
+                                    <th style={{ padding: '20px 32px', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {requests.map(req => (
-                                    <tr key={req._id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="font-bold text-gray-900">{req.organizerName}</td>
-                                        <td className="text-gray-500 text-sm">{req.email}</td>
+                            <tbody style={{ borderTop: '1px solid #f3f4f6' }}>
+                                {requests.map((req) => (
+                                    <tr key={req._id}>
+                                        <td style={{ padding: '20px 32px', fontWeight: 'bold' }}>{req.organizerName || 'Unknown Club'}</td>
+                                        <td style={{ color: '#4b5563' }}>{req.email}</td>
+                                        <td style={{ color: '#4b5563' }}>{req.reason}</td>
+                                        <td style={{ color: '#4b5563' }}>{new Date(req.createdAt).toLocaleDateString()}</td>
                                         <td>
-                                            <div className="max-w-xs truncate text-sm text-gray-600" title={req.reason}>
-                                                {req.reason}
-                                            </div>
-                                        </td>
-                                        <td className="text-gray-400 text-xs">
-                                            {new Date(req.createdAt).toLocaleDateString()}
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${req.status === 'approved' ? 'badge-green' :
-                                                    req.status === 'rejected' ? 'badge-red' : 'badge-orange'
-                                                }`}>
+                                            <span className={`badge ${req.status === 'pending' ? 'badge-blue' : req.status === 'approved' ? 'badge-green' : 'badge-red'}`}>
                                                 {req.status}
                                             </span>
                                         </td>
-                                        <td className="text-right space-x-2">
+                                        <td style={{ padding: '20px 32px', textAlign: 'right' }}>
                                             {req.status === 'pending' ? (
-                                                <div className="flex justify-end gap-2">
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                     <button
                                                         onClick={() => handleRequestAction(req._id, 'approved')}
-                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                                        title="Approve & Generate Password"
+                                                        style={{ padding: '8px 16px', backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #dcfce7', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                        </svg>
+                                                        Approve
                                                     </button>
                                                     <button
                                                         onClick={() => handleRequestAction(req._id, 'rejected')}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                        title="Reject Request"
+                                                        style={{ padding: '8px 16px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fee2e2', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
+                                                        Reject
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <span className="text-xs text-gray-400 font-medium uppercase italic">Handled</span>
+                                                <span style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', fontStyle: 'italic' }}>Handled</span>
                                             )}
                                         </td>
                                     </tr>
                                 ))}
                                 {requests.length === 0 && (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500 italic">
+                                        <td colSpan="6" style={{ padding: '80px 24px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
                                             No password reset requests found.
                                         </td>
                                     </tr>
