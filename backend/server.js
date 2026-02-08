@@ -3,6 +3,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const User = require('./models/User');
 
 dotenv.config();
 
@@ -67,5 +68,28 @@ io.on('connection', (socket) => {
 app.set('io', io);
 
 const PORT = process.env.PORT || 5000;
+const createAdmin = async () => {
+    try {
+        const adminExists = await User.findOne({ role: 'admin' });
 
-server.listen(PORT, console.log(`Server running on port ${PORT}`));
+        if (!adminExists) {
+            await User.create({
+                email: 'admin@system.com',
+                password: 'admin123',
+                role: 'admin'
+            });
+
+            console.log('Admin account created');
+        } else {
+            console.log('Admin already exists');
+        }
+    } catch (error) {
+        console.error('Error creating admin:', error.message);
+    }
+};
+
+
+server.listen(PORT, async () => {
+    console.log(`Server running on port ${PORT}`);
+    await createAdmin();
+});
