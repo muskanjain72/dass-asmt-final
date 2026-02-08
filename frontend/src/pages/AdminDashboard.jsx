@@ -18,8 +18,9 @@ const AdminDashboard = () => {
     const [requestLoading, setRequestLoading] = useState(false);
 
     useEffect(() => {
-        const tab = searchParams.get('tab');
-        if (tab) setActiveTab(tab);
+        const tab = searchParams.get('tab') || 'dashboard';
+        setActiveTab(tab);
+        if (tab === 'dashboard') setCreatedCredentials(null);
     }, [searchParams]);
 
     useEffect(() => {

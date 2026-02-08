@@ -28,8 +28,11 @@ const Navbar = () => {
                                 )}
                                 {user.role === 'organizer' && (
                                     <>
-                                        <Link to="/organizer/dashboard" className="nav-link">Dashboard</Link>
+                                        <Link to="/organizer/dashboard?tab=dashboard" className="nav-link">Dashboard</Link>
                                         <Link to="/organizer/create-event" className="nav-link">Create Event</Link>
+                                        <Link to="/organizer/dashboard?tab=ongoing" className="nav-link">Ongoing Event</Link>
+                                        <Link to="/profile" className="nav-link">Profile</Link>
+                                        <button onClick={handleLogout} className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}>Logout</button>
                                     </>
                                 )}
                                 {user.role === 'admin' && (
@@ -48,7 +51,7 @@ const Navbar = () => {
                         )}
                     </div>
 
-                    {user && (
+                    {user && user.role !== 'organizer' && (
                         <div className="user-controls">
                             {user.role !== 'admin' && <Link to="/profile" className="btn btn-primary">Profile</Link>}
                             <button onClick={handleLogout} className="btn btn-primary">Logout</button>
