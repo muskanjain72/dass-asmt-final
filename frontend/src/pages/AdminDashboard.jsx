@@ -132,144 +132,255 @@ const AdminDashboard = () => {
             </div>
 
             {activeTab === 'clubs' ? (
-                <>
-                    {/* Create Organizer Section */}
-                    <div className="bg-white shadow sm:rounded-lg mb-8 p-6">
-                        <h2 className="text-lg font-medium text-gray-900 mb-4">Add New Club / Organizer</h2>
-                        <form onSubmit={handleCreate} className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-8">
+                    {/* Add New Organizer Section */}
+                    <div className="saas-card">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="w-1 h-6 bg-purple-600 rounded-full" style={{ background: 'var(--primary-gradient)' }}></div>
+                            <h2 className="text-xl font-bold text-gray-900">Add New Club / Organizer</h2>
+                        </div>
+
+                        <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Organizer Name</label>
                                 <input
-                                    type="text" placeholder="Organizer Name" required
-                                    className="block w-full border-gray-300 rounded-md shadow-sm p-2 border"
+                                    type="text" placeholder="e.g. Google Developer Group" required
+                                    className="block w-full border-gray-200 rounded-xl shadow-sm p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none border transition-all"
                                     value={newOrg.organizerName} onChange={e => setNewOrg({ ...newOrg, organizerName: e.target.value })}
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Category</label>
                                 <input
-                                    type="text" placeholder="Category (e.g. Technical Club)" required
-                                    className="block w-full border-gray-300 rounded-md shadow-sm p-2 border"
+                                    type="text" placeholder="e.g. Technical" required
+                                    className="block w-full border-gray-200 rounded-xl shadow-sm p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none border transition-all"
                                     value={newOrg.category} onChange={e => setNewOrg({ ...newOrg, category: e.target.value })}
                                 />
                             </div>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Contact Email (Public)</label>
                                 <input
-                                    type="email" placeholder="Contact Email (Public)" required
-                                    className="block w-full border-gray-300 rounded-md shadow-sm p-2 border"
+                                    type="email" placeholder="contact@club.com" required
+                                    className="block w-full border-gray-200 rounded-xl shadow-sm p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none border transition-all"
                                     value={newOrg.contactEmail} onChange={e => setNewOrg({ ...newOrg, contactEmail: e.target.value })}
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Description</label>
                                 <input
-                                    type="text" placeholder="Description"
-                                    className="block w-full border-gray-300 rounded-md shadow-sm p-2 border"
+                                    type="text" placeholder="Brief description..."
+                                    className="block w-full border-gray-200 rounded-xl shadow-sm p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none border transition-all"
                                     value={newOrg.description} onChange={e => setNewOrg({ ...newOrg, description: e.target.value })}
                                 />
                             </div>
-                            <button
-                                type="submit"
-                                disabled={creating}
-                                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-                            >
-                                {creating ? 'Creating...' : 'Create Organizer Account'}
-                            </button>
+                            <div className="md:col-span-2">
+                                <button
+                                    type="submit"
+                                    disabled={creating}
+                                    className="btn btn-primary w-full md:w-auto px-8"
+                                >
+                                    {creating ? 'Creating...' : 'Create Organizer Account'}
+                                </button>
+                            </div>
                         </form>
 
-                        {/* Success Message with Credentials */}
+                        {/* Success Card with Credentials */}
                         {createdCredentials && (
-                            <div className="mt-4 p-4 bg-green-50 rounded-md border border-green-200">
-                                <h3 className="text-green-800 font-bold">Organizer Created Successfully!</h3>
-                                <p className="text-sm text-green-700 mt-1">Please copy these credentials and share them with the organizer.</p>
-                                <div className="mt-2 bg-white p-3 rounded border border-gray-200 font-mono text-sm">
-                                    <p><strong>Login Email:</strong> {createdCredentials.loginEmail}</p>
-                                    <p><strong>Password:</strong> {createdCredentials.loginPassword}</p>
+                            <div className="mt-8 p-6 bg-purple-50 rounded-2xl border border-purple-100 relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+                                <div className="absolute top-0 right-0 p-4 opacity-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
                                 </div>
+                                <h3 className="text-purple-900 font-bold text-lg mb-2">Organizer Created Successfully!</h3>
+                                <p className="text-sm text-purple-700 mb-6">Generated system credentials for login:</p>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-sm">
+                                        <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Login Email</p>
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-mono text-gray-900">{createdCredentials.loginEmail}</span>
+                                            <button
+                                                onClick={() => { navigator.clipboard.writeText(createdCredentials.loginEmail); alert('Email Copied!'); }}
+                                                className="text-purple-600 hover:text-purple-700 p-1"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-sm">
+                                        <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Generated Password</p>
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-mono text-gray-900 font-bold">{createdCredentials.loginPassword}</span>
+                                            <button
+                                                onClick={() => { navigator.clipboard.writeText(createdCredentials.loginPassword); alert('Password Copied!'); }}
+                                                className="text-purple-600 hover:text-purple-700 p-1"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setCreatedCredentials(null)}
+                                    className="mt-6 text-sm text-purple-400 hover:text-purple-600 font-medium"
+                                >
+                                    Dismiss
+                                </button>
                             </div>
                         )}
                     </div>
 
-                    {/* Organizers List */}
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Manage Organizers</h2>
-                    <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                        <ul className="divide-y divide-gray-200">
-                            {organizers.map((org) => (
-                                <li key={org._id} className={`px-4 py-4 sm:px-6 flex justify-between items-center ${org.isActive === false ? 'bg-red-50' : 'hover:bg-gray-50'}`}>
-                                    <div>
-                                        <p className="text-sm font-medium text-indigo-600 font-bold">
-                                            {org.organizerName} {org.isActive === false && <span className="text-red-500 ml-2">(ARCHIVED/DISABLED)</span>}
-                                        </p>
-                                        <p className="text-sm text-gray-500">{org.category}</p>
-                                    </div>
-                                    <div className="flex items-center space-x-4">
-                                        <span className="text-xs text-gray-400">{org.contactEmail}</span>
-
-                                        <button
-                                            onClick={() => handleToggleStatus(org._id)}
-                                            className={`${org.isActive !== false ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'} text-sm font-medium`}
-                                        >
-                                            {org.isActive !== false ? 'Disable/Archive' : 'Activate'}
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleDelete(org._id)}
-                                            className="text-red-600 hover:text-red-900 text-sm font-medium"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </li>
-                            ))}
-                            {organizers.length === 0 && !loading && (
-                                <li className="px-4 py-4 text-gray-500 text-center">No organizers found.</li>
-                            )}
-                        </ul>
+                    {/* Manage Organizers Table */}
+                    <div className="saas-card overflow-hidden !p-0">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <h2 className="text-xl font-bold text-gray-900">Manage Organizers</h2>
+                            <div className="text-sm text-gray-500 font-medium bg-white px-3 py-1 rounded-full border border-gray-100">
+                                Total: {organizers.length}
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="saas-table border-none">
+                                <thead>
+                                    <tr>
+                                        <th>Organizer Name</th>
+                                        <th>Category</th>
+                                        <th>Contact Email</th>
+                                        <th>Status</th>
+                                        <th className="text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {organizers.map((org) => (
+                                        <tr key={org._id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="font-bold text-gray-900">{org.organizerName}</td>
+                                            <td><span className="badge badge-gray">{org.category}</span></td>
+                                            <td className="text-gray-500">{org.contactEmail}</td>
+                                            <td>
+                                                <span className={`badge ${org.isActive !== false ? 'badge-green' : 'badge-red'}`}>
+                                                    {org.isActive !== false ? 'Active' : 'Disabled'}
+                                                </span>
+                                            </td>
+                                            <td className="text-right space-x-2 whitespace-nowrap">
+                                                <button
+                                                    onClick={() => handleToggleStatus(org._id)}
+                                                    className={`p-2 rounded-lg transition-colors ${org.isActive !== false ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
+                                                    title={org.isActive !== false ? 'Disable/Archive' : 'Enable'}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(org._id)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Delete Permanently"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {organizers.length === 0 && !loading && (
+                                        <tr>
+                                            <td colSpan="5" className="px-6 py-12 text-center text-gray-500 italic">
+                                                No organizers found. Start by adding one above.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </>
+                </div>
             ) : (
-                <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                    <div className="px-4 py-5 sm:px-6">
-                        <h3 className="text-lg leading-6 font-medium text-gray-900">Password Reset Requests</h3>
-                        <p className="mt-1 max-w-2xl text-sm text-gray-500">Approve requests to generate new temporary passwords.</p>
+                <div className="saas-card overflow-hidden !p-0">
+                    <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Password Reset Requests</h2>
+                            <p className="text-sm text-gray-500 mt-1">Review and handle organizer account recovery requests.</p>
+                        </div>
+                        <div className="text-sm text-gray-500 font-medium bg-white px-3 py-1 rounded-full border border-gray-100">
+                            Pending: {requests.filter(r => r.status === 'pending').length}
+                        </div>
                     </div>
-                    <ul className="divide-y divide-gray-200">
-                        {requests.length === 0 && (
-                            <li className="px-4 py-8 text-center text-gray-500">No requests found.</li>
-                        )}
-                        {requests.map(req => (
-                            <li key={req._id} className="px-4 py-4 sm:px-6">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                        <div className="flex items-center">
-                                            <p className="text-sm font-bold text-indigo-600">{req.organizerName}</p>
-                                            <span className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${req.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                                    req.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+
+                    <div className="overflow-x-auto">
+                        <table className="saas-table border-none">
+                            <thead>
+                                <tr>
+                                    <th>Organizer</th>
+                                    <th>Email</th>
+                                    <th>Reason</th>
+                                    <th>Requested</th>
+                                    <th>Status</th>
+                                    <th className="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {requests.map(req => (
+                                    <tr key={req._id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="font-bold text-gray-900">{req.organizerName}</td>
+                                        <td className="text-gray-500 text-sm">{req.email}</td>
+                                        <td>
+                                            <div className="max-w-xs truncate text-sm text-gray-600" title={req.reason}>
+                                                {req.reason}
+                                            </div>
+                                        </td>
+                                        <td className="text-gray-400 text-xs">
+                                            {new Date(req.createdAt).toLocaleDateString()}
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${req.status === 'approved' ? 'badge-green' :
+                                                    req.status === 'rejected' ? 'badge-red' : 'badge-orange'
                                                 }`}>
-                                                {req.status.toUpperCase()}
+                                                {req.status}
                                             </span>
-                                        </div>
-                                        <p className="text-sm text-gray-500 mt-1">Email: {req.email}</p>
-                                        <div className="mt-2 text-sm text-gray-800 bg-gray-50 p-2 rounded">
-                                            <span className="font-semibold">Reason:</span> {req.reason}
-                                        </div>
-                                        <p className="text-xs text-gray-400 mt-2">Requested: {new Date(req.createdAt).toLocaleString()}</p>
-                                    </div>
-                                    <div className="ml-4 flex items-center space-x-2">
-                                        {req.status === 'pending' && (
-                                            <>
-                                                <button
-                                                    onClick={() => handleRequestAction(req._id, 'approved')}
-                                                    className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                                                >
-                                                    Approve
-                                                </button>
-                                                <button
-                                                    onClick={() => handleRequestAction(req._id, 'rejected')}
-                                                    className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                                                >
-                                                    Reject
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                                        </td>
+                                        <td className="text-right space-x-2">
+                                            {req.status === 'pending' ? (
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleRequestAction(req._id, 'approved')}
+                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                        title="Approve & Generate Password"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRequestAction(req._id, 'rejected')}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Reject Request"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-gray-400 font-medium uppercase italic">Handled</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {requests.length === 0 && (
+                                    <tr>
+                                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500 italic">
+                                            No password reset requests found.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

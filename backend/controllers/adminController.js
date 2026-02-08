@@ -55,6 +55,7 @@ const createOrganizer = async (req, res) => {
             });
         }
     } catch (error) {
+        console.error('Create Organizer Error:', error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -117,6 +118,7 @@ const toggleOrganizerStatus = async (req, res) => {
             isActive: organizer.isActive
         });
     } catch (error) {
+        console.error('Toggle Status Error:', error);
         res.status(500).json({ message: error.message });
     }
 };

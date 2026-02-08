@@ -31,8 +31,8 @@ const Navbar = () => {
                         {user && user.role === 'admin' && (
                             <>
                                 <Link to="/admin/dashboard" className="nav-link">Dashboard</Link>
-                                <Link to="/admin/dashboard?tab=clubs" className="nav-link">Manage Clubs</Link>
-                                <Link to="/admin/dashboard?tab=password-requests" className="nav-link">Password Requests</Link>
+                                <Link to="/admin/dashboard?tab=clubs" className="nav-link">Manage Clubs/Organizers</Link>
+                                <Link to="/admin/dashboard?tab=password-requests" className="nav-link">Password Reset Requests</Link>
                             </>
                         )}
                     </div>
