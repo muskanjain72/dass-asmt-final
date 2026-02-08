@@ -40,7 +40,6 @@ const Navbar = () => {
                 <div className="nav-auth">
                     {user ? (
                         <div className="user-controls">
-                            <span className="user-greeting">Hello, {user.firstName || user.organizerName || 'User'}</span>
                             <Link to="/profile" className="btn btn-outline">Profile</Link>
                             <button onClick={handleLogout} className="btn btn-primary">Logout</button>
                         </div>

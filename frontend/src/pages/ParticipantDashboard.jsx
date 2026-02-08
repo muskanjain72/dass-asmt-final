@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { Link } from 'react-router-dom';
 import AddToCalendarButton from '../components/AddToCalendarButton';
-import { downloadICS } from '../utils/calendar';
+import TicketModal from '../components/TicketModal';
 
 const ParticipantDashboard = () => {
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('upcoming'); // upcoming, history (normal), merch, completed, cancelled
+    const [activeTab, setActiveTab] = useState('Normal'); // Tabs: Normal, Merchandise, Completed, Cancelled
+    const [selectedTicket, setSelectedTicket] = useState(null);
 
     useEffect(() => {
         const fetchTickets = async () => {
@@ -20,181 +21,214 @@ const ParticipantDashboard = () => {
                 setLoading(false);
             }
         };
-
         fetchTickets();
     }, []);
 
-    // Helper to categorize
-    const getFilteredTickets = () => {
-        const now = new Date();
-        return tickets.filter(ticket => {
-            const event = ticket.eventId;
-            if (!event) return false;
+    const now = new Date();
 
-            const eventDate = new Date(event.endDate || event.startDate);
-            const isCancelled = ticket.status === 'cancelled';
-            const isCompleted = !isCancelled && eventDate < now;
-            const isUpcoming = !isCancelled && eventDate >= now;
+    // Upcoming Events: Not cancelled, and event is in the future
+    const upcomingTickets = tickets.filter(t => {
+        const event = t.eventId;
+        if (!event || t.status === 'cancelled') return false;
+        return new Date(event.endDate || event.startDate) >= now;
+    });
 
-            switch (activeTab) {
-                case 'upcoming':
-                    return isUpcoming && event.type === 'normal';
-                case 'merch':
-                    // Merch History or Orders
-                    return event.type === 'merchandise' && !isCancelled;
-                case 'completed':
-                    return isCompleted && event.type === 'normal'; // Completed events
-                case 'cancelled':
-                    return isCancelled;
-                default:
-                    return true;
-            }
-        });
-    };
+    // History: Filtered by active tab
+    const historyTickets = tickets.filter(t => {
+        const event = t.eventId;
+        if (!event) return false;
 
-    const handleUploadProof = async (ticketId, file) => {
-        if (!file) return;
-        const formData = new FormData();
-        formData.append('proof', file);
-        try {
-            await api.post(`/tickets/${ticketId}/payment-proof`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            alert("Proof uploaded successfully");
-            // Refresh logic - ideally update local state
-            window.location.reload();
-        } catch (error) {
-            console.error(error);
-            alert("Upload failed");
+        const eventDate = new Date(event.endDate || event.startDate);
+        const isCancelled = t.status === 'cancelled' || t.paymentStatus === 'rejected';
+        const isCompleted = eventDate < now && !isCancelled;
+
+        switch (activeTab) {
+            case 'Normal':
+                return event.type === 'normal' && !isCancelled && !isCompleted;
+            case 'Merchandise':
+                return event.type === 'merchandise' && !isCancelled;
+            case 'Completed':
+                return isCompleted;
+            case 'Cancelled':
+                return isCancelled;
+            default:
+                return true;
+        }
+    });
+
+    const getStatusBadgeClass = (status) => {
+        switch (status?.toLowerCase()) {
+            case 'registered': return 'badge-blue';
+            case 'confirmed': return 'badge-green';
+            case 'attended': return 'badge-purple';
+            case 'cancelled':
+            case 'rejected': return 'badge-red';
+            case 'pending': return 'badge-gray';
+            default: return 'badge-gray';
         }
     };
 
-    const filteredTickets = getFilteredTickets();
-
-    const handleBatchExport = () => {
-        // Export all UPCOMING events across all tickets (ignoring merch usually for calendar)
-        const eventsToExport = tickets
-            .filter(t => t.eventId && t.eventId.type === 'normal' && t.status !== 'cancelled')
-            .map(t => t.eventId);
-
-        if (eventsToExport.length === 0) {
-            alert("No events to export.");
-            return;
-        }
-        downloadICS(eventsToExport);
-    };
-
-    const TabButton = ({ id, label }) => (
-        <button
-            onClick={() => setActiveTab(id)}
-            className={`${activeTab === id
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-        >
-            {label}
-        </button>
+    if (loading) return (
+        <div className="flex justify-center items-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        </div>
     );
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
-                <button
-                    onClick={handleBatchExport}
-                    className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded shadow-sm hover:bg-gray-50 text-sm"
-                >
-                    📆 Export All to Calendar
-                </button>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Participant Dashboard</h1>
+                    <p className="text-gray-500 mt-1">Manage your registrations and track your event journey.</p>
+                </div>
+                <Link to="/events" className="btn btn-primary" style={{ background: 'var(--primary-gradient)' }}>
+                    Browse More Events
+                </Link>
             </div>
 
-            {/* Tabs */}
-            <div className="border-b border-gray-200 mb-6 overflow-x-auto">
-                <nav className="-mb-px flex space-x-8">
-                    <TabButton id="upcoming" label="Upcoming Events" />
-                    <TabButton id="merch" label="Merchandise" />
-                    <TabButton id="completed" label="Completed Events" />
-                    <TabButton id="cancelled" label="Cancelled/Rejected" />
-                </nav>
-            </div>
+            {/* Upcoming Events Section */}
+            <section>
+                <div className="flex items-center gap-2 mb-6">
+                    <div className="w-1 h-8 bg-purple-600 rounded-full" style={{ background: 'var(--primary-gradient)' }}></div>
+                    <h2 className="section-title mb-0">Upcoming Events</h2>
+                </div>
 
-            {/* Content */}
-            {loading ? (
-                <div className="text-center py-8">Loading...</div>
-            ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredTickets.map((ticket) => (
-                        <div key={ticket._id} className="bg-white overflow-hidden shadow rounded-lg border border-gray-100 flex flex-col">
-                            <div className="px-4 py-5 sm:p-6 flex-1">
-                                <div className="flex justify-between items-start">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ticket.eventId?.type === 'normal' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                                        }`}>
-                                        {ticket.eventId?.type === 'normal' ? 'Event' : 'Merch'}
-                                    </span>
-                                    <span className="text-gray-400 text-xs">#{ticket.ticketId.substring(0, 8)}...</span>
+                {upcomingTickets.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {upcomingTickets.map(ticket => (
+                            <div key={ticket._id} className="saas-card flex flex-col justify-between">
+                                <div>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <span className={`badge ${ticket.eventId.type === 'normal' ? 'badge-blue' : 'badge-green'}`}>
+                                            {ticket.eventId.type}
+                                        </span>
+                                        <span className={`badge ${getStatusBadgeClass(ticket.status)}`}>
+                                            {ticket.status}
+                                        </span>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-900 mb-1">{ticket.eventId.name}</h3>
+                                    <p className="text-purple-600 text-sm font-medium mb-4">{ticket.eventId.organizer?.organizerName}</p>
+
+                                    <div className="space-y-3 mb-6">
+                                        <div className="flex items-center text-sm text-gray-500 gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <span>{new Date(ticket.eventId.startDate).toLocaleDateString()} at {new Date(ticket.eventId.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        <div className="flex items-center text-sm text-gray-500 gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            <span>Main Campus</span>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <h3 className="mt-3 text-lg font-medium text-gray-900">{ticket.eventId?.name}</h3>
-                                <p className="text-sm text-indigo-600 mb-2">{ticket.eventId?.organizer?.organizerName}</p>
+                                <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <button
+                                        onClick={() => setSelectedTicket(ticket)}
+                                        className="text-sm font-bold text-purple-600 hover:text-purple-700 transition-colors"
+                                    >
+                                        View Ticket
+                                    </button>
+                                    <AddToCalendarButton event={ticket.eventId} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="saas-card text-center py-12">
+                        <p className="text-gray-500">No upcoming events found. Time to explore!</p>
+                        <Link to="/events" className="text-purple-600 font-bold mt-2 inline-block">Browse Events &rarr;</Link>
+                    </div>
+                )}
+            </section>
 
-                                <dl className="mt-2 text-sm text-gray-500 space-y-1">
-                                    <div className="flex justify-between">
-                                        <dt>Status:</dt>
-                                        <dd className="font-medium capitalize">{ticket.status}</dd>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <dt>Date:</dt>
-                                        <dd>{ticket.eventId?.startDate ? new Date(ticket.eventId.startDate).toLocaleDateString() : 'N/A'}</dd>
-                                    </div>
-                                    {ticket.qrCodeData && (
-                                        <div className="mt-3 p-2 bg-gray-50 rounded text-center border text-xs">
-                                            <p className="mb-1 font-semibold">Unique Ticket ID</p>
-                                            <code className="text-gray-800 break-all">{ticket.ticketId}</code>
-                                            <div className="mt-1 text-gray-400 italic">(QR Code)</div>
-                                        </div>
-                                    )}
-                                    {/* Payment Upload for Pending Merch */}
-                                    {ticket.eventId?.type === 'merchandise' && ticket.paymentStatus === 'pending' && (
-                                        <div className="mt-3">
-                                            <p className="text-xs text-red-600 mb-1">Payment Proof Required</p>
-                                            <input
-                                                type="file"
-                                                className="text-xs w-full bg-gray-50 rounded border p-1"
-                                                onChange={(e) => handleUploadProof(ticket._id, e.target.files[0])}
-                                            />
-                                        </div>
-                                    )}
-                                    {ticket.paymentStatus === 'pending_approval' && (
-                                        <div className="mt-3 text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
-                                            Payment Proof Uploaded. Pending Approval.
-                                        </div>
-                                    )}
-                                    {ticket.paymentStatus === 'rejected' && (
-                                        <div className="mt-3 text-xs text-red-600 bg-red-50 p-2 rounded">
-                                            Order Rejected. Contact Organizer.
-                                        </div>
-                                    )}
-                                </dl>
-                            </div>
-                            <div className="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center">
-                                <Link
-                                    to={`/events/${ticket.eventId?._id}`}
-                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                                >
-                                    View Event Details
-                                </Link>
-                                {(activeTab === 'upcoming' || activeTab === 'completed') && (
-                                    <AddToCalendarButton event={ticket.eventId} className="ml-2" />
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                    {filteredTickets.length === 0 && (
-                        <div className="col-span-full text-center text-gray-500 py-10">
-                            No records found in this category.
-                        </div>
-                    )}
+            {/* Participation History Section */}
+            <section>
+                <div className="flex items-center gap-2 mb-6">
+                    <div className="w-1 h-8 bg-purple-600 rounded-full" style={{ background: 'var(--primary-gradient)' }}></div>
+                    <h2 className="section-title mb-0">Participation History</h2>
                 </div>
+
+                <div className="saas-card overflow-hidden !p-0">
+                    <div className="border-b border-gray-100 px-6 pt-4 flex gap-8 overflow-x-auto scroller-hide">
+                        {['Normal', 'Merchandise', 'Completed', 'Cancelled'].map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`pb-4 px-2 text-sm font-semibold transition-all relative ${activeTab === tab ? 'text-purple-600' : 'text-gray-400 hover:text-gray-600'
+                                    }`}
+                            >
+                                {tab}
+                                {activeTab === tab && (
+                                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-600 rounded-t-full"></span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="saas-table-container !border-none">
+                        <table className="saas-table">
+                            <thead>
+                                <tr>
+                                    <th>Event Name</th>
+                                    <th>Type</th>
+                                    <th>Organizer</th>
+                                    <th>Status</th>
+                                    <th>Team</th>
+                                    <th>Ticket ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {historyTickets.map(ticket => (
+                                    <tr key={ticket._id}>
+                                        <td className="font-semibold text-gray-900">{ticket.eventId?.name}</td>
+                                        <td>
+                                            <span className={`badge ${ticket.eventId?.type === 'normal' ? 'badge-blue' : 'badge-green'}`}>
+                                                {ticket.eventId?.type}
+                                            </span>
+                                        </td>
+                                        <td className="text-gray-600">{ticket.eventId?.organizer?.organizerName}</td>
+                                        <td>
+                                            <span className={`badge ${getStatusBadgeClass(ticket.status || ticket.paymentStatus)}`}>
+                                                {ticket.status || ticket.paymentStatus}
+                                            </span>
+                                        </td>
+                                        <td className="text-gray-500">{ticket.responses?.teamName || '-'}</td>
+                                        <td>
+                                            <button
+                                                onClick={() => setSelectedTicket(ticket)}
+                                                className="text-purple-600 font-bold hover:underline"
+                                            >
+                                                #{ticket.ticketId}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {historyTickets.length === 0 && (
+                                    <tr>
+                                        <td colSpan="6" className="text-center py-12 text-gray-500">
+                                            No records found for this category.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            {/* Ticket Modal */}
+            {selectedTicket && (
+                <TicketModal
+                    ticket={selectedTicket}
+                    onClose={() => setSelectedTicket(null)}
+                />
             )}
         </div>
     );
