@@ -15,7 +15,7 @@ const generateToken = (id) => {
  */
 const registerParticipant = async (req, res) => {
     try {
-        const { firstName, lastName, email, password, contactNumber, collegeName, isIIIT, interests } = req.body;
+        const { firstName, lastName, email, password, contactNumber, collegeName, isIIIT, participantType, interests } = req.body;
 
         const userExists = await User.findOne({ email });
 
@@ -25,8 +25,8 @@ const registerParticipant = async (req, res) => {
 
         // Domain validation for IIIT
         if (isIIIT) {
-            if (!email.endsWith('@iiit.ac.in') && !email.endsWith('@students.iiit.ac.in')) { // Adjust domain as needed
-                return res.status(400).json({ message: 'Must use IIIT email for IIIT participant type' });
+            if (!email.endsWith('iiit.ac.in')) { // Allow subdomains like students.iiit.ac.in
+                return res.status(400).json({ message: 'Must use IIIT email for IIIT participant type (ends with iiit.ac.in)' });
             }
         }
 
@@ -39,13 +39,14 @@ const registerParticipant = async (req, res) => {
             contactNumber,
             collegeName,
             isIIIT,
+            participantType,
             interests
         });
 
         if (user) {
             res.status(201).json({
                 _id: user._id,
-                name: `${user.firstName} ${user.lastName}`,
+                name: `${user.firstName} ${user.lastName || ''}`.trim(),
                 email: user.email,
                 role: user.role,
                 token: generateToken(user._id)

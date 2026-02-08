@@ -106,10 +106,15 @@ const updateUserProfile = async (req, res) => {
             // Fields common to all or specific to Participant
             user.contactNumber = req.body.contactNumber || user.contactNumber;
 
+            if (req.body.password) {
+                user.password = req.body.password;
+            }
+
             if (user.role === 'participant') {
                 user.firstName = req.body.firstName || user.firstName;
                 user.lastName = req.body.lastName || user.lastName;
                 user.collegeName = req.body.collegeName || user.collegeName;
+                user.participantType = req.body.participantType || user.participantType;
                 user.interests = req.body.interests || user.interests;
             } else if (user.role === 'organizer') {
                 // Organizer updates their profile here too

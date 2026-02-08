@@ -22,10 +22,11 @@ const userSchema = new mongoose.Schema({
     },
     // Participant Fields
     firstName: { type: String, required: function () { return this.role === 'participant'; } },
-    lastName: { type: String, required: function () { return this.role === 'participant'; } },
+    lastName: { type: String },
     contactNumber: { type: String },
     collegeName: { type: String },
     isIIIT: { type: Boolean, default: false },
+    participantType: { type: String }, // e.g. Student, Faculty, External
     interests: [{ type: String }],
     followedOrganizers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
