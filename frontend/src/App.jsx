@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import './App.css';
 import Navbar from './components/Navbar';
@@ -28,84 +28,97 @@ const Home = () => {
   );
 };
 
+// Main Layout Component to handle conditional Navbar
+const MainLayout = ({ children }) => {
+  const location = useLocation();
+  const hideNavbarRoutes = ['/login', '/register'];
+  const showNavbar = !hideNavbarRoutes.includes(location.pathname);
+
+  return (
+    <div className="min-h-screen bg-gray-100 font-sans text-gray-900">
+      {showNavbar && <Navbar />}
+      <main>
+        {children}
+      </main>
+    </div>
+  );
+};
+
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen bg-gray-100 font-sans text-gray-900">
-          <Navbar />
-          <main>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/organizer/reset-password" element={<OrganizerResetRequest />} />
+        <MainLayout>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/organizer/reset-password" element={<OrganizerResetRequest />} />
 
-              <Route path="/events" element={<BrowseEvents />} />
-              <Route path="/events/:id" element={<EventDetails />} />
-              <Route path="/clubs" element={<ClubList />} />
+            <Route path="/events" element={<BrowseEvents />} />
+            <Route path="/events/:id" element={<EventDetails />} />
+            <Route path="/clubs" element={<ClubList />} />
 
-              {/* Protected Routes */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={["participant"]}>
-                    <ParticipantDashboard />
-                  </ProtectedRoute>
-                }
-              />
+            {/* Protected Routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["participant"]}>
+                  <ParticipantDashboard />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/organizer/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={["organizer"]}>
-                    <OrganizerDashboard />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/organizer/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["organizer"]}>
+                  <OrganizerDashboard />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/organizer/create-event"
-                element={
-                  <ProtectedRoute allowedRoles={["organizer"]}>
-                    <CreateEvent />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/organizer/create-event"
+              element={
+                <ProtectedRoute allowedRoles={["organizer"]}>
+                  <CreateEvent />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/organizer/event/:id"
-                element={
-                  <ProtectedRoute allowedRoles={["organizer"]}>
-                    <OrganizerEventDetails />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/organizer/event/:id"
+              element={
+                <ProtectedRoute allowedRoles={["organizer"]}>
+                  <OrganizerEventDetails />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute allowedRoles={["participant", "organizer", "admin"]}>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute allowedRoles={["participant", "organizer", "admin"]}>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* Catch all */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-        </div>
+            {/* Catch all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </MainLayout>
       </Router>
     </AuthProvider>
   );
