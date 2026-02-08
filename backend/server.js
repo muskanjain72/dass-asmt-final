@@ -75,13 +75,15 @@ const createAdmin = async () => {
         if (!adminExists) {
             await User.create({
                 email: 'admin@system.com',
-                password: 'admin123',
+                password: 'admin@123',
                 role: 'admin'
             });
-
             console.log('Admin account created');
         } else {
-            console.log('Admin already exists');
+            // Update password if admin already exists
+            adminExists.password = 'admin@123';
+            await adminExists.save();
+            console.log('Admin password updated');
         }
     } catch (error) {
         console.error('Error creating admin:', error.message);

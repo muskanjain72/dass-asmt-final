@@ -26,12 +26,13 @@ export const AuthProvider = ({ children }) => {
         checkLoggedIn();
     }, []);
 
-    const login = async (email, password, remember = true) => {
+    const login = async (email, password) => {
         try {
             const { data } = await api.post('/auth/login', { email, password });
-            // Store token and user in either localStorage (persistent) or sessionStorage (until browser closed)
-            const storage = remember ? localStorage : sessionStorage;
-            storage.setItem('token', data.token);
+
+            // Always use localStorage for persistence
+            localStorage.setItem('token', data.token);
+
             // Store minimal user info
             const userData = {
                 _id: data._id,
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }) => {
                 email: data.email,
                 role: data.role
             };
-            storage.setItem('user', JSON.stringify(userData));
+            localStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
 
             // Ensure axios default header set
@@ -47,9 +48,9 @@ export const AuthProvider = ({ children }) => {
             return { success: true };
         } catch (error) {
             console.error("Login failed", error);
-            return { 
-                success: false, 
-                message: error.response?.data?.message || 'Login failed' 
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Login failed'
             };
         }
     };
@@ -57,7 +58,7 @@ export const AuthProvider = ({ children }) => {
     const registerParticipant = async (formData) => {
         try {
             const { data } = await api.post('/auth/register', formData);
-             // Auto login after register
+            // Auto login after register
             // Default to persistent session for registration (user expects logged-in state)
             localStorage.setItem('token', data.token);
             const userData = {
@@ -71,9 +72,9 @@ export const AuthProvider = ({ children }) => {
             api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
             return { success: true };
         } catch (error) {
-            return { 
-                success: false, 
-                message: error.response?.data?.message || 'Registration failed' 
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Registration failed'
             };
         }
     };

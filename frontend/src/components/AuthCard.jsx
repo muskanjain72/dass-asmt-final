@@ -16,7 +16,6 @@ const AuthCard = ({ initialTab = 'login' }) => {
   const [participantType, setParticipantType] = useState('Student');
   const [isIIIT, setIsIIIT] = useState(false);
 
-  const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
@@ -31,7 +30,7 @@ const AuthCard = ({ initialTab = 'login' }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    const result = await login(email, password, remember);
+    const result = await login(email, password);
     if (result.success) {
       const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || 'null');
       const role = storedUser?.role || null;
@@ -151,11 +150,7 @@ const AuthCard = ({ initialTab = 'login' }) => {
               </button>
             </div>
 
-            <div className="extras">
-              <label className="remember">
-                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-                Remember me
-              </label>
+            <div className="extras" style={{ justifyContent: 'flex-end' }}>
               <a className="link small" href="/organizer/reset-password">Forgot password?</a>
             </div>
 
