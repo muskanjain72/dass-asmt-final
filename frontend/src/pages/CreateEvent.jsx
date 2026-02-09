@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
@@ -21,6 +21,33 @@ const CreateEvent = () => {
     const [newField, setNewField] = useState({ label: '', type: 'text', required: false, options: '' });
     const [activeSection, setActiveSection] = useState('basic');
     const [submitting, setSubmitting] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const editId = urlParams.get('edit');
+        if (editId) {
+            setEditMode(true);
+            fetchEventToEdit(editId);
+        }
+    }, []);
+
+    const fetchEventToEdit = async (id) => {
+        try {
+            const { data } = await api.get(`/events/${id}`);
+            // Format dates for input[type="datetime-local"]
+            const formatDate = (date) => date ? new Date(date).toISOString().slice(0, 16) : '';
+            setFormData({
+                ...data,
+                registrationDeadline: formatDate(data.registrationDeadline),
+                startDate: formatDate(data.startDate),
+                endDate: formatDate(data.endDate),
+            });
+        } catch (error) {
+            console.error("Error fetching event for edit", error);
+            alert("Error loading event data");
+        }
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -51,12 +78,18 @@ const CreateEvent = () => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await api.post('/events', formData);
-            alert('Event Draft Created Successfully!');
-            navigate('/organizer/dashboard');
+            if (editMode && formData._id) {
+                await api.put(`/events/${formData._id}`, formData);
+                alert('Event Updated Successfully!');
+                navigate(`/organizer/event/${formData._id}`);
+            } else {
+                await api.post('/events', formData);
+                alert('Event Draft Created Successfully!');
+                navigate('/organizer/dashboard');
+            }
         } catch (error) {
-            console.error("Error creating event", error);
-            alert('Error creating event');
+            console.error("Error saving event", error);
+            alert(error.response?.data?.message || 'Error saving event');
         } finally {
             setSubmitting(false);
         }
@@ -65,7 +98,7 @@ const CreateEvent = () => {
     return (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                <h1 style={{ fontSize: '2.25rem', fontWeight: 'bold', color: '#111827' }}>Create New Event</h1>
+                <h1 style={{ fontSize: '2.25rem', fontWeight: 'bold', color: '#111827' }}>{editMode ? 'Edit Event' : 'Create New Event'}</h1>
                 <p style={{ color: '#6b7280', fontSize: '1.125rem', marginTop: '8px' }}>Follow the steps below to set up your event or merchandise listing.</p>
             </div>
 
@@ -210,7 +243,7 @@ const CreateEvent = () => {
                                 Back to Details
                             </button>
                             <button type="submit" disabled={submitting} className="btn-primary" style={{ padding: '12px 48px' }}>
-                                {submitting ? 'Creating...' : 'Finalize & Create Event'}
+                                {submitting ? (editMode ? 'Updating...' : 'Creating...') : (editMode ? 'Update Event' : 'Finalize & Create Event')}
                             </button>
                         </div>
                     </div>
