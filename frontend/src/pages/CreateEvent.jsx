@@ -15,9 +15,13 @@ const CreateEvent = () => {
         registrationLimit: 0,
         registrationFee: 0,
         merchandiseStock: 0,
+        purchaseLimit: 1,
+        tags: '',
+        merchandiseVariants: [],
         formSchema: []
     });
 
+    const [newVariant, setNewVariant] = useState({ category: '', options: '' });
     const [newField, setNewField] = useState({ label: '', type: 'text', required: false, options: '' });
     const [activeSection, setActiveSection] = useState('basic');
     const [submitting, setSubmitting] = useState(false);
@@ -32,6 +36,26 @@ const CreateEvent = () => {
         }
     }, []);
 
+    const addVariant = () => {
+        if (!newVariant.category || !newVariant.options) return;
+        const variantToAdd = {
+            category: newVariant.category,
+            options: newVariant.options.split(',').map(s => s.trim())
+        };
+        setFormData(prev => ({
+            ...prev,
+            merchandiseVariants: [...(prev.merchandiseVariants || []), variantToAdd]
+        }));
+        setNewVariant({ category: '', options: '' });
+    };
+
+    const removeVariant = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            merchandiseVariants: prev.merchandiseVariants.filter((_, i) => i !== index)
+        }));
+    };
+
     const fetchEventToEdit = async (id) => {
         try {
             const { data } = await api.get(`/events/${id}`);
@@ -42,6 +66,7 @@ const CreateEvent = () => {
                 registrationDeadline: formatDate(data.registrationDeadline),
                 startDate: formatDate(data.startDate),
                 endDate: formatDate(data.endDate),
+                tags: Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || ''),
             });
         } catch (error) {
             console.error("Error fetching event for edit", error);
@@ -160,6 +185,14 @@ const CreateEvent = () => {
                             </div>
                         </div>
 
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <label style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                                Event Tags (comma separated)
+                            </label>
+                            <input type="text" name="tags" className="input" style={{ paddingLeft: '12px' }} placeholder="e.g. workshop, coding, music" value={formData.tags} onChange={handleChange} />
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <label style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#374151' }}>Registration Fee (₹)</label>
@@ -171,12 +204,44 @@ const CreateEvent = () => {
                                     <input type="number" name="registrationLimit" className="input" style={{ paddingLeft: '12px' }} value={formData.registrationLimit} onChange={handleChange} />
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <label style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#374151' }}>Total Stock</label>
-                                    <input type="number" name="merchandiseStock" className="input" style={{ paddingLeft: '12px' }} value={formData.merchandiseStock} onChange={handleChange} />
-                                </div>
+                                <>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#374151' }}>Total Stock</label>
+                                        <input type="number" name="merchandiseStock" className="input" style={{ paddingLeft: '12px' }} value={formData.merchandiseStock} onChange={handleChange} />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#374151' }}>Purchase Limit / Person</label>
+                                        <input type="number" name="purchaseLimit" className="input" style={{ paddingLeft: '12px' }} value={formData.purchaseLimit} onChange={handleChange} />
+                                    </div>
+                                </>
                             )}
                         </div>
+
+                        {formData.type === 'merchandise' && (
+                            <div style={{ backgroundColor: '#f3f4f6', padding: '24px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                                <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#111827', marginBottom: '16px' }}>Merchandise Variants (Size, Color, etc.)</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase' }}>Category</label>
+                                        <input type="text" placeholder="e.g. Size" className="input" style={{ paddingLeft: '12px', marginTop: '4px' }} value={newVariant.category} onChange={(e) => setNewVariant({ ...newVariant, category: e.target.value })} />
+                                    </div>
+                                    <div style={{ flex: 2 }}>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase' }}>Options (comma separated)</label>
+                                        <input type="text" placeholder="e.g. S, M, L, XL" className="input" style={{ paddingLeft: '12px', marginTop: '4px' }} value={newVariant.options} onChange={(e) => setNewVariant({ ...newVariant, options: e.target.value })} />
+                                    </div>
+                                    <button type="button" onClick={addVariant} style={{ height: '46px', border: '1px solid #e5e7eb', backgroundColor: 'white', color: '#111827', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', padding: '0 16px' }}>Add Variant</button>
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '16px' }}>
+                                    {formData.merchandiseVariants?.map((v, idx) => (
+                                        <div key={idx} style={{ backgroundColor: 'white', padding: '8px 16px', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ fontWeight: 'bold', fontSize: '0.875rem' }}>{v.category}:</span>
+                                            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>{v.options.join(', ')}</span>
+                                            <button type="button" onClick={() => removeVariant(idx)} style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>&times;</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
                             <button type="button" onClick={() => setActiveSection('custom')} className="btn-primary" style={{ padding: '12px 32px' }}>

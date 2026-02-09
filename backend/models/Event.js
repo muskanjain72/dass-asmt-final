@@ -65,6 +65,16 @@ const eventSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    // Configurable purchase limit per participant
+    purchaseLimit: {
+        type: Number,
+        default: 1
+    },
+    // Item details (size, color, variants)
+    merchandiseVariants: [{
+        category: { type: String, required: true }, // e.g. "Size"
+        options: [{ type: String, required: true }] // e.g. ["S", "M", "L"]
+    }],
 
     // Custom Form Builder Schema
     // Stores definitions of fields the organizer wants to collect

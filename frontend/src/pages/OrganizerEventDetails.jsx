@@ -162,6 +162,16 @@ const OrganizerEventDetails = () => {
                                     <p style={{ fontSize: '0.75rem', fontWeight: '900', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Pricing</p>
                                     <p style={{ fontWeight: 'bold', color: '#111827' }}>{event.registrationFee > 0 ? `₹${event.registrationFee.toLocaleString()}` : 'Free'}</p>
                                 </div>
+                                {event.tags && event.tags.length > 0 && (
+                                    <div>
+                                        <p style={{ fontSize: '0.75rem', fontWeight: '900', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Tags</p>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                            {event.tags.map((tag, i) => (
+                                                <span key={i} className="badge badge-gray" style={{ fontSize: '0.65rem' }}>{tag}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div>
@@ -174,10 +184,43 @@ const OrganizerEventDetails = () => {
                                         {new Date(event.startDate).toLocaleDateString()} — {new Date(event.endDate).toLocaleDateString()}
                                     </p>
                                 </div>
+                                {event.type === 'normal' && (
+                                    <div>
+                                        <p style={{ fontSize: '0.75rem', fontWeight: '900', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Capacity</p>
+                                        <p style={{ fontWeight: 'bold', color: '#111827' }}>{event.registrationLimit > 0 ? `${event.registrationLimit} Participants` : 'Unlimited'}</p>
+                                    </div>
+                                )}
                             </div>
-                            <div style={{ backgroundColor: '#f9fafb', padding: '20px', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
-                                <p style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#4b5563', marginBottom: '8px' }}>Description</p>
-                                <p style={{ fontSize: '0.9rem', color: '#6b7280', lineHeight: '1.6' }}>{event.description}</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: '900', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '8px' }}>Description</p>
+                                    <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: '1.5' }}>{event.description}</p>
+                                </div>
+                                {event.type === 'merchandise' && (
+                                    <div style={{ backgroundColor: '#f0f9ff', padding: '16px', borderRadius: '12px', border: '1px solid #e0f2fe' }}>
+                                        <p style={{ fontSize: '0.75rem', fontWeight: '900', color: '#0369a1', textTransform: 'uppercase', marginBottom: '12px' }}>Merchandise Details</p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Stock:</span>
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{event.merchandiseStock} units</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Limit/Person:</span>
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{event.purchaseLimit}</span>
+                                            </div>
+                                            {event.merchandiseVariants?.length > 0 && (
+                                                <div style={{ borderTop: '1px solid #bae6fd', paddingTop: '8px', marginTop: '4px' }}>
+                                                    {event.merchandiseVariants.map((v, i) => (
+                                                        <div key={i} style={{ marginBottom: '4px' }}>
+                                                            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#0c4a6e' }}>{v.category}: </span>
+                                                            <span style={{ fontSize: '0.75rem', color: '#334155' }}>{v.options.join(', ')}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

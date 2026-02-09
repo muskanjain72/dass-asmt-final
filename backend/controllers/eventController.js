@@ -12,7 +12,7 @@ const createEvent = async (req, res) => {
             name, description, type, eligibility,
             registrationDeadline, startDate, endDate,
             registrationLimit, registrationFee, tags,
-            merchandiseStock, formSchema
+            merchandiseStock, merchandiseVariants, purchaseLimit, formSchema
         } = req.body;
 
         const event = new Event({
@@ -27,8 +27,10 @@ const createEvent = async (req, res) => {
             endDate,
             registrationLimit,
             registrationFee,
-            tags,
+            tags: typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags,
             merchandiseStock,
+            merchandiseVariants,
+            purchaseLimit,
             formSchema
         });
 
@@ -159,7 +161,11 @@ const updateEvent = async (req, res) => {
             return res.status(400).json({ message: 'Cannot edit event details in current status' });
         }
 
-        const { name, description, status, registrationDeadline, registrationLimit, formSchema, startDate, endDate, registrationFee } = req.body;
+        const {
+            name, description, status, registrationDeadline, registrationLimit,
+            formSchema, startDate, endDate, registrationFee, tags,
+            merchandiseStock, merchandiseVariants, purchaseLimit
+        } = req.body;
 
         event.name = name || event.name;
         event.description = description || event.description;
@@ -167,6 +173,14 @@ const updateEvent = async (req, res) => {
         event.startDate = startDate || event.startDate;
         event.endDate = endDate || event.endDate;
         event.registrationFee = registrationFee !== undefined ? registrationFee : event.registrationFee;
+
+        if (tags) {
+            event.tags = typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags;
+        }
+
+        if (merchandiseStock !== undefined) event.merchandiseStock = merchandiseStock;
+        if (merchandiseVariants !== undefined) event.merchandiseVariants = merchandiseVariants;
+        if (purchaseLimit !== undefined) event.purchaseLimit = purchaseLimit;
 
         if (registrationLimit) {
             if (event.status === 'published' && registrationLimit < event.registrationLimit) {
