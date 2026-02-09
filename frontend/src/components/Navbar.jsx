@@ -16,7 +16,7 @@ const Navbar = () => {
     return (
         <nav className="navbar">
             <div className="nav-container">
-                {(!user || (user.role !== 'admin' && user.role !== 'organizer')) && (
+                {!user && (
                     <Link to="/" className="nav-brand">Campus Events</Link>
                 )}
 

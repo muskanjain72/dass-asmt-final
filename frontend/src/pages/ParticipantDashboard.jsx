@@ -79,10 +79,7 @@ const ParticipantDashboard = () => {
 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Participant Dashboard</h1>
-                    <p className="text-gray-500 mt-1">Manage your registrations and track your event journey.</p>
-                </div>
+                <div style={{ visibility: 'hidden', height: 0 }}>Dashboard</div>
                 <Link to="/events" className="btn btn-primary" style={{ background: 'var(--primary-gradient)' }}>
                     Browse More Events
                 </Link>
