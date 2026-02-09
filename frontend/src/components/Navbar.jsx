@@ -1,9 +1,12 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
+    const activeTab = searchParams.get('tab') || 'dashboard';
 
     const handleLogout = () => {
         logout();
@@ -30,9 +33,9 @@ const Navbar = () => {
                                 )}
                                 {user.role === 'organizer' && (
                                     <>
-                                        <Link to="/organizer/dashboard?tab=dashboard" className="nav-link">Dashboard</Link>
-                                        <Link to="/organizer/create-event" className="nav-link">Create Event</Link>
-                                        <Link to="/organizer/dashboard?tab=ongoing" className="nav-link">Ongoing Event</Link>
+                                        <Link to="/organizer/dashboard?tab=dashboard" className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}>Dashboard</Link>
+                                        <Link to="/organizer/create-event" className={`nav-link ${location.pathname === '/organizer/create-event' ? 'active' : ''}`}>Create Event</Link>
+                                        <Link to="/organizer/dashboard?tab=list" className={`nav-link ${activeTab === 'list' ? 'active' : ''}`}>My Events</Link>
                                         <Link to="/profile" className="nav-link">Profile</Link>
                                         <button onClick={handleLogout} className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}>Logout</button>
                                     </>

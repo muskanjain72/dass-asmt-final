@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
 const OrganizerDashboard = () => {
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState('dashboard');
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [subStatusTab, setSubStatusTab] = useState('all'); // all, drafts, live
 
     useEffect(() => {
         const tab = searchParams.get('tab') || 'dashboard';
@@ -33,9 +35,15 @@ const OrganizerDashboard = () => {
     // Simple analytics calculation
     const totalRegistrations = events.reduce((acc, event) => acc + (event.registeredCount || 0), 0);
     const totalRevenue = events.reduce((acc, event) => acc + ((event.registeredCount || 0) * (event.registrationFee || 0)), 0);
-    const totalAttendance = events.reduce((acc, event) => acc + (event.attendanceCount || 0), 0);
     const publishedEventsCount = events.filter(e => e.status === 'published' || e.status === 'ongoing').length;
     const draftsCount = events.filter(e => e.status === 'draft').length;
+
+    // Filter events based on sub-tab
+    const filteredEvents = events.filter(e => {
+        if (subStatusTab === 'drafts') return e.status === 'draft';
+        if (subStatusTab === 'live') return e.status === 'published' || e.status === 'ongoing';
+        return true;
+    });
 
     if (loading) return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
@@ -81,7 +89,7 @@ const OrganizerDashboard = () => {
                             </div>
                         </div>
 
-                        <div className="saas-card" style={{ padding: '20px', borderLeft: '4px solid #f59e0b', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div className="saas-card" style={{ padding: '20px', borderLeft: '4px solid #f59e0b', display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer' }} onClick={() => navigate('/organizer/dashboard?tab=list')}>
                             <div style={{ backgroundColor: '#fff7ed', color: '#ea580c', padding: '10px', borderRadius: '10px' }}>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                             </div>
@@ -115,8 +123,8 @@ const OrganizerDashboard = () => {
                     {/* Events Carousel Section */}
                     <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827' }}>Your Events</h2>
-                            <Link to="/organizer/dashboard?tab=ongoing" style={{ fontSize: '0.875rem', color: '#2563eb', textDecoration: 'none', fontWeight: '600' }}>View All Table</Link>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827' }}>Quick Access</h2>
+                            <Link to="/organizer/dashboard?tab=list" style={{ fontSize: '0.875rem', color: '#6d28d9', textDecoration: 'none', fontWeight: 'bold' }}>View All List</Link>
                         </div>
 
                         {events.length > 0 ? (
@@ -134,34 +142,35 @@ const OrganizerDashboard = () => {
                                         minWidth: '300px',
                                         flexShrink: 0,
                                         scrollSnapAlign: 'start',
-                                        padding: '20px',
+                                        padding: '24px',
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        gap: '12px'
+                                        gap: '12px',
+                                        borderLeft: event.status === 'draft' ? '6px solid #f59e0b' : '1px solid #e5e7eb'
                                     }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <span className={`badge ${event.status === 'published' ? 'badge-green' : event.status === 'draft' ? 'badge-orange' : event.status === 'ongoing' ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: '0.7rem' }}>
                                                 {event.status}
                                             </span>
-                                            <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: '500' }}>{event.type}</span>
+                                            <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase' }}>{event.type}</span>
                                         </div>
                                         <div>
                                             <h4 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>{event.name}</h4>
                                             <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '4px 0 0 0' }}>{new Date(event.startDate).toLocaleDateString()}</p>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '12px', marginTop: '4px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '16px', marginTop: '8px' }}>
                                             <div>
-                                                <p style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', margin: 0 }}>Regs</p>
-                                                <p style={{ fontSize: '1rem', fontWeight: 'bold', margin: 0 }}>{event.registeredCount}</p>
+                                                <p style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>Active Regs</p>
+                                                <p style={{ fontSize: '1.125rem', fontWeight: 'bold', margin: '2px 0 0 0', color: '#111827' }}>{event.registeredCount}</p>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                 {event.status === 'draft' && (
-                                                    <button onClick={() => handleQuickPublish(event._id)} className="link" style={{ color: '#10b981' }}>Publish</button>
+                                                    <button onClick={() => handleQuickPublish(event._id)} className="link" style={{ color: '#10b981', background: '#ecfdf5', padding: '6px 12px', borderRadius: '8px' }}>Publish</button>
                                                 )}
                                                 <Link
                                                     to={`/organizer/event/${event._id}`}
                                                     className="link"
-                                                    style={{ alignSelf: 'center', fontSize: '0.875rem', fontWeight: '600' }}
+                                                    style={{ color: '#6d28d9', fontWeight: '800' }}
                                                 >
                                                     Manage
                                                 </Link>
@@ -171,8 +180,12 @@ const OrganizerDashboard = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="saas-card" style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>
-                                No events found. Create your first event to get started!
+                            <div className="saas-card" style={{ padding: '60px', textAlign: 'center', backgroundColor: '#f9fafb', border: '1px dashed #e5e7eb' }}>
+                                <div style={{ color: '#9ca3af', marginBottom: '16px' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+                                </div>
+                                <p style={{ color: '#6b7280', fontWeight: 'bold' }}>No events created yet.</p>
+                                <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Your event dashboard will come alive once you create your first listing.</p>
                             </div>
                         )}
                     </div>
@@ -189,13 +202,34 @@ const OrganizerDashboard = () => {
                 </div>
             ) : (
                 <div className="saas-card" style={{ padding: 0, overflow: 'hidden' }}>
-                    <div style={{ padding: '32px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ padding: '32px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
                         <div>
                             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>My Events</h2>
-                            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>Manage your ongoing and upcoming event listings.</p>
+                            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>Track and manage all your event listings in one place.</p>
                         </div>
-                        <div style={{ fontSize: '0.875rem', color: '#4b5563', fontWeight: 'bold', backgroundColor: 'white', padding: '8px 16px', borderRadius: '16px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                            Published: {publishedEventsCount}
+
+                        {/* Sub-tabs for filtering */}
+                        <div style={{ display: 'flex', backgroundColor: 'white', padding: '4px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                            {['all', 'drafts', 'live'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setSubStatusTab(tab)}
+                                    style={{
+                                        padding: '8px 16px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        backgroundColor: subStatusTab === tab ? '#6d28d9' : 'transparent',
+                                        color: subStatusTab === tab ? 'white' : '#6b7280',
+                                        fontWeight: 'bold',
+                                        fontSize: '0.875rem',
+                                        cursor: 'pointer',
+                                        textTransform: 'capitalize',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
@@ -212,12 +246,15 @@ const OrganizerDashboard = () => {
                                 </tr>
                             </thead>
                             <tbody style={{ borderTop: '1px solid #f3f4f6' }}>
-                                {events.map((event) => (
-                                    <tr key={event._id}>
-                                        <td style={{ padding: '20px 32px', fontWeight: 'bold', color: '#111827' }}>{event.name}</td>
+                                {filteredEvents.map((event) => (
+                                    <tr key={event._id} style={{ backgroundColor: event.status === 'draft' ? '#fffbeb' : 'transparent' }}>
+                                        <td style={{ padding: '20px 32px' }}>
+                                            <div style={{ fontWeight: 'bold', color: '#111827' }}>{event.name}</div>
+                                            {event.status === 'draft' && <span style={{ fontSize: '0.65rem', color: '#d97706', fontWeight: '900', textTransform: 'uppercase' }}>Drafting</span>}
+                                        </td>
                                         <td>
-                                            <span style={{ fontSize: '0.875rem', color: '#4b5563', backgroundColor: '#f3f4f6', padding: '4px 10px', borderRadius: '6px' }}>
-                                                {event.type === 'normal' ? 'Event' : 'Merchandise'}
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#4b5563', backgroundColor: '#f3f4f6', padding: '4px 10px', borderRadius: '6px' }}>
+                                                {event.type}
                                             </span>
                                         </td>
                                         <td style={{ color: '#4b5563' }}>
@@ -226,9 +263,9 @@ const OrganizerDashboard = () => {
                                                 <span style={{ color: '#9ca3af' }}>/ {event.registrationLimit > 0 ? event.registrationLimit : '∞'}</span>
                                             </div>
                                         </td>
-                                        <td style={{ color: '#4b5563' }}>{new Date(event.startDate).toLocaleDateString()}</td>
+                                        <td style={{ color: '#4b5563', fontSize: '0.875rem' }}>{new Date(event.startDate).toLocaleDateString()}</td>
                                         <td>
-                                            <span className={`badge ${event.status === 'published' ? 'badge-green' : event.status === 'draft' ? 'badge-orange' : 'badge-gray'}`} style={{ fontWeight: '900', padding: '6px 16px', borderRadius: '9999px' }}>
+                                            <span className={`badge ${event.status === 'published' ? 'badge-green' : event.status === 'draft' ? 'badge-orange' : 'badge-gray'}`} style={{ fontWeight: '900', padding: '6px 16px', borderRadius: '9999px', fontSize: '0.7rem' }}>
                                                 {event.status}
                                             </span>
                                         </td>
@@ -238,7 +275,7 @@ const OrganizerDashboard = () => {
                                                     <button
                                                         onClick={() => handleQuickPublish(event._id)}
                                                         style={{
-                                                            padding: '8px 16px', backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #d1fae5', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.875rem', cursor: 'pointer'
+                                                            padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer'
                                                         }}
                                                     >
                                                         Publish
@@ -246,21 +283,25 @@ const OrganizerDashboard = () => {
                                                 )}
                                                 <Link
                                                     to={`/organizer/event/${event._id}`}
+                                                    className="btn-outline"
                                                     style={{
-                                                        padding: '8px 16px', backgroundColor: '#f9fafb', color: '#2563eb', border: '1px solid #e5e7eb', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '4px'
+                                                        padding: '8px 16px', borderRadius: '10px', fontSize: '0.75rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px'
                                                     }}
                                                 >
                                                     Manage
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>
                                                 </Link>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
-                                {events.length === 0 && !loading && (
+                                {filteredEvents.length === 0 && !loading && (
                                     <tr>
-                                        <td colSpan="6" style={{ padding: '80px 24px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
-                                            No events found. Click 'Create New Event' to get started.
+                                        <td colSpan="6" style={{ padding: '100px 24px', textAlign: 'center' }}>
+                                            <div style={{ color: '#9ca3af', marginBottom: '8px' }}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                            </div>
+                                            <p style={{ color: '#6b7280', fontWeight: 'bold' }}>No {subStatusTab !== 'all' ? subStatusTab : ''} events found.</p>
                                         </td>
                                     </tr>
                                 )}

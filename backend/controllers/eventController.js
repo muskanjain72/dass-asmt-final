@@ -222,7 +222,16 @@ const updateEvent = async (req, res) => {
  */
 const getMyEvents = async (req, res) => {
     try {
-        const events = await Event.find({ organizer: req.user._id }).sort({ createdAt: -1 });
+        const userId = req.user._id.toString();
+        // Use $or to be safe if some legacy data has string IDs
+        const events = await Event.find({
+            $or: [
+                { organizer: req.user._id },
+                { organizer: userId }
+            ]
+        }).sort({ createdAt: -1 });
+
+        console.log(`[DEBUG] Found ${events.length} events for organizer ${userId}`);
         res.json(events);
     } catch (error) {
         res.status(500).json({ message: error.message });
