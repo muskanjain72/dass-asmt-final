@@ -152,43 +152,79 @@ const updateEvent = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
+        const {
+            name, description, status, registrationDeadline, registrationLimit,
+            formSchema, startDate, endDate, registrationFee, tags,
+            merchandiseStock, merchandiseVariants, purchaseLimit, eligibility
+        } = req.body;
+
+        // --- Status Based Editing Rules ---
+
+        // 1. Ongoing/Closed/Completed: No edits allowed except status
         if (['ongoing', 'closed', 'completed'].includes(event.status)) {
-            if (req.body.status) {
-                event.status = req.body.status;
+            if (status) {
+                event.status = status;
                 await event.save();
                 return res.json(event);
             }
             return res.status(400).json({ message: 'Cannot edit event details in current status' });
         }
 
-        const {
-            name, description, status, registrationDeadline, registrationLimit,
-            formSchema, startDate, endDate, registrationFee, tags,
-            merchandiseStock, merchandiseVariants, purchaseLimit
-        } = req.body;
+        // 2. Published: Restricted edits
+        if (event.status === 'published') {
+            // Check for illegal published edits
+            const illegalEdits = [];
+            if (name && name !== event.name) illegalEdits.push('name');
+            if (startDate && new Date(startDate).getTime() !== new Date(event.startDate).getTime()) illegalEdits.push('startDate');
+            if (endDate && new Date(endDate).getTime() !== new Date(event.endDate).getTime()) illegalEdits.push('endDate');
+            if (registrationFee !== undefined && registrationFee !== event.registrationFee) illegalEdits.push('registrationFee');
+            if (eligibility && eligibility !== event.eligibility) illegalEdits.push('eligibility');
+            if (formSchema) illegalEdits.push('formSchema');
 
-        event.name = name || event.name;
-        event.description = description || event.description;
-        event.registrationDeadline = registrationDeadline || event.registrationDeadline;
-        event.startDate = startDate || event.startDate;
-        event.endDate = endDate || event.endDate;
-        event.registrationFee = registrationFee !== undefined ? registrationFee : event.registrationFee;
-
-        if (tags) {
-            event.tags = typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags;
-        }
-
-        if (merchandiseStock !== undefined) event.merchandiseStock = merchandiseStock;
-        if (merchandiseVariants !== undefined) event.merchandiseVariants = merchandiseVariants;
-        if (purchaseLimit !== undefined) event.purchaseLimit = purchaseLimit;
-
-        if (registrationLimit) {
-            if (event.status === 'published' && registrationLimit < event.registrationLimit) {
-                return res.status(400).json({ message: 'Cannot decrease limit for published event' });
+            if (illegalEdits.length > 0) {
+                return res.status(400).json({
+                    message: `Cannot edit core fields [${illegalEdits.join(', ')}] after publication`
+                });
             }
-            event.registrationLimit = registrationLimit;
+
+            // Allowed edits for Published: description, registrationDeadline, registrationLimit, tags
+            event.description = description || event.description;
+            event.registrationDeadline = registrationDeadline || event.registrationDeadline;
+
+            if (tags) {
+                event.tags = typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags;
+            }
+
+            if (registrationLimit) {
+                if (registrationLimit < event.registrationLimit) {
+                    return res.status(400).json({ message: 'Cannot decrease limit for published event' });
+                }
+                event.registrationLimit = registrationLimit;
+            }
         }
 
+        // 3. Draft: Full edits
+        if (event.status === 'draft') {
+            event.name = name || event.name;
+            event.description = description || event.description;
+            event.registrationDeadline = registrationDeadline || event.registrationDeadline;
+            event.startDate = startDate || event.startDate;
+            event.endDate = endDate || event.endDate;
+            event.registrationFee = registrationFee !== undefined ? registrationFee : event.registrationFee;
+            event.eligibility = eligibility || event.eligibility;
+            event.registrationLimit = registrationLimit || event.registrationLimit;
+
+            if (tags) {
+                event.tags = typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags;
+            }
+
+            if (merchandiseStock !== undefined) event.merchandiseStock = merchandiseStock;
+            if (merchandiseVariants !== undefined) event.merchandiseVariants = merchandiseVariants;
+            if (purchaseLimit !== undefined) event.purchaseLimit = purchaseLimit;
+            if (formSchema) event.formSchema = formSchema;
+        }
+
+        // Handle Publication Event (Discord Webhook)
         if (status === 'published' && event.status !== 'published') {
             const organizerUser = await User.findById(req.user._id);
             if (organizerUser.discordWebhookUrl) {
@@ -203,9 +239,6 @@ const updateEvent = async (req, res) => {
         }
 
         if (status) event.status = status;
-        if (formSchema && event.status === 'draft') {
-            event.formSchema = formSchema; // Only editable in draft
-        }
 
         const updatedEvent = await event.save();
         res.json(updatedEvent);

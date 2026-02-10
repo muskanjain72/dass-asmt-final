@@ -33,13 +33,10 @@ export const AuthProvider = ({ children }) => {
             // Always use localStorage for persistence
             localStorage.setItem('token', data.token);
 
-            // Store minimal user info
-            const userData = {
-                _id: data._id,
-                name: data.name,
-                email: data.email,
-                role: data.role
-            };
+            // Store full user info from response
+            const userData = { ...data };
+            delete userData.token; // Remove token from user object for clarity
+
             localStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
 
@@ -59,14 +56,11 @@ export const AuthProvider = ({ children }) => {
         try {
             const { data } = await api.post('/auth/register', formData);
             // Auto login after register
-            // Default to persistent session for registration (user expects logged-in state)
             localStorage.setItem('token', data.token);
-            const userData = {
-                _id: data._id,
-                name: data.name,
-                email: data.email,
-                role: data.role
-            };
+
+            const userData = { ...data };
+            delete userData.token;
+
             localStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
             api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
@@ -79,7 +73,14 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const updateUser = (updatedData) => {
+        const newUser = { ...user, ...updatedData };
+        setUser(newUser);
+        localStorage.setItem('user', JSON.stringify(newUser));
+    };
+
     const logout = () => {
+        // ... logout logic
         // Clear both storages to ensure logout regardless of remember-me
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -95,6 +96,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         registerParticipant,
+        updateUser,
         logout
     };
 

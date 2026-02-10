@@ -80,10 +80,22 @@ const loginUser = async (req, res) => {
             };
 
             // Add name fields based on role
-            if (user.role === 'participant') {
-                userData.name = `${user.firstName} ${user.lastName}`;
-            } else if (user.role === 'organizer') {
+            if (user.role === 'organizer') {
                 userData.name = user.organizerName;
+                userData.organizerName = user.organizerName;
+                userData.description = user.description;
+                userData.category = user.category;
+                userData.contactEmail = user.contactEmail;
+                userData.discordWebhookUrl = user.discordWebhookUrl;
+                userData.contactNumber = user.contactNumber;
+            } else if (user.role === 'participant') {
+                userData.name = `${user.firstName} ${user.lastName}`;
+                userData.firstName = user.firstName;
+                userData.lastName = user.lastName;
+                userData.contactNumber = user.contactNumber;
+                userData.collegeName = user.collegeName;
+                userData.participantType = user.participantType;
+                userData.interests = user.interests;
             } else {
                 userData.name = 'Admin';
             }

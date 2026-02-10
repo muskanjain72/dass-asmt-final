@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 
 const ProfilePage = () => {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const [formData, setFormData] = useState({
         firstName: '', lastName: '', contactNumber: '', collegeName: '',
         // Participant Type
@@ -52,6 +52,7 @@ const ProfilePage = () => {
             if (!payload.password) delete payload.password;
 
             const { data } = await api.put('/users/profile', payload);
+            updateUser(data); // Update global user state
             setMessage('Profile updated successfully');
             // Clear password field after successful update
             setFormData(prev => ({ ...prev, password: '' }));
@@ -237,20 +238,52 @@ const ProfilePage = () => {
 
                     {/* Password Section */}
                     <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem' }}>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem', color: '#374151' }}>Change Password</h3>
-                        <div className="input-with-icon">
-                            <span className="icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                            </span>
-                            <input
-                                type="password"
-                                className="input"
-                                name="password"
-                                placeholder="New Password"
-                                value={formData.password}
-                                onChange={handleChange}
-                            />
-                        </div>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem', color: '#374151' }}>Security</h3>
+
+                        {!isParticipant ? (
+                            <div style={{ backgroundColor: '#f9fafb', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+                                <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
+                                    For security reasons, organizers cannot change passwords directly. Please submit a request to the Admin for a password reset.
+                                </p>
+                                <button
+                                    type="button"
+                                    className="btn-outline"
+                                    style={{ width: '100%', borderColor: '#6366f1', color: '#6366f1' }}
+                                    onClick={async () => {
+                                        try {
+                                            setLoading(true);
+                                            await api.post('/auth/reset-request', {
+                                                email: user.email,
+                                                organizerName: user.organizerName || formData.organizerName,
+                                                reason: 'Password reset requested from profile page'
+                                            });
+                                            setMessage('Password reset request submitted to Admin successfully.');
+                                        } catch (err) {
+                                            setError(err.response?.data?.message || 'Error submitting reset request');
+                                        } finally {
+                                            setLoading(false);
+                                        }
+                                    }}
+                                    disabled={loading}
+                                >
+                                    Request Password Reset from Admin
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="input-with-icon">
+                                <span className="icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                </span>
+                                <input
+                                    type="password"
+                                    className="input"
+                                    name="password"
+                                    placeholder="New Password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '2rem' }}>

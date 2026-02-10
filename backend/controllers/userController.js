@@ -107,7 +107,13 @@ const updateUserProfile = async (req, res) => {
             user.contactNumber = req.body.contactNumber || user.contactNumber;
 
             if (req.body.password) {
-                user.password = req.body.password;
+                if (user.role === 'organizer') {
+                    // Password update for organizer must go through reset request
+                    // We can either silently ignore or return error. Requirement says "cant directly change"
+                    // Let's just not update it.
+                } else {
+                    user.password = req.body.password;
+                }
             }
 
             if (user.role === 'participant') {
@@ -129,13 +135,29 @@ const updateUserProfile = async (req, res) => {
             // Note: Password reset is a separate flow
 
             const updatedUser = await user.save();
-            res.json({
+            const updatedUserResponse = {
                 _id: updatedUser._id,
                 name: user.role === 'participant' ? `${updatedUser.firstName} ${updatedUser.lastName}` : updatedUser.organizerName,
                 email: updatedUser.email,
                 role: updatedUser.role,
-                // return other fields as needed
-            });
+                contactNumber: updatedUser.contactNumber
+            };
+
+            if (user.role === 'participant') {
+                updatedUserResponse.firstName = updatedUser.firstName;
+                updatedUserResponse.lastName = updatedUser.lastName;
+                updatedUserResponse.collegeName = updatedUser.collegeName;
+                updatedUserResponse.participantType = updatedUser.participantType;
+                updatedUserResponse.interests = updatedUser.interests;
+            } else if (user.role === 'organizer') {
+                updatedUserResponse.organizerName = updatedUser.organizerName;
+                updatedUserResponse.description = updatedUser.description;
+                updatedUserResponse.category = updatedUser.category;
+                updatedUserResponse.contactEmail = updatedUser.contactEmail;
+                updatedUserResponse.discordWebhookUrl = updatedUser.discordWebhookUrl;
+            }
+
+            res.json(updatedUserResponse);
         } else {
             res.status(404).json({ message: 'User not found' });
         }
