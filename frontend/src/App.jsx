@@ -8,6 +8,7 @@ import ParticipantDashboard from './pages/ParticipantDashboard';
 import BrowseEvents from './pages/BrowseEvents';
 import EventDetails from './pages/EventDetails';
 import ClubList from './pages/ClubList';
+import OnboardingPage from './pages/OnboardingPage';
 
 // Organizer & Admin
 import OrganizerDashboard from './pages/OrganizerDashboard';
@@ -66,6 +67,15 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={["participant"]}>
                   <ParticipantDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute allowedRoles={["participant"]}>
+                  <OnboardingPage />
                 </ProtectedRoute>
               }
             />

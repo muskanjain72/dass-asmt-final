@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 
 const BrowseEvents = () => {
+    const { user } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -14,14 +16,31 @@ const BrowseEvents = () => {
 
     useEffect(() => {
         fetchEvents();
-    }, [searchParams]);
+    }, [searchParams, user]);
 
     const fetchEvents = async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams(searchParams);
             const { data } = await api.get(`/events?${params.toString()}`);
-            setEvents(data);
+
+            let processedEvents = [...data];
+
+            // If participant is logged in, prioritize events matching their interests
+            if (user && user.role === 'participant' && user.interests?.length > 0) {
+                processedEvents = processedEvents.map(event => {
+                    const matchCount = event.tags?.filter(tag =>
+                        user.interests.some(interest => interest.toLowerCase() === tag.toLowerCase())
+                    ).length || 0;
+
+                    return { ...event, matchCount, isRecommended: matchCount > 0 };
+                });
+
+                // Sort by matchCount descending
+                processedEvents.sort((a, b) => (b.matchCount || 0) - (a.matchCount || 0));
+            }
+
+            setEvents(processedEvents);
         } catch (error) {
             console.error("Error fetching events", error);
         } finally {
@@ -93,9 +112,14 @@ const BrowseEvents = () => {
                             {events.map(event => (
                                 <div key={event._id} className="saas-card group flex flex-col hover:border-purple-200 transition-all">
                                     <div className="flex justify-between items-start mb-4">
-                                        <span className={`badge ${event.type === 'normal' ? 'badge-blue' : 'badge-green'}`} style={{ textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold' }}>
-                                            {event.type}
-                                        </span>
+                                        <div className="flex gap-2 items-center">
+                                            <span className={`badge ${event.type === 'normal' ? 'badge-blue' : 'badge-green'}`} style={{ textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold' }}>
+                                                {event.type}
+                                            </span>
+                                            {event.isRecommended && (
+                                                <span className="badge badge-purple" style={{ fontSize: '0.6rem', fontWeight: 'bold' }}>⭐ Recommended</span>
+                                            )}
+                                        </div>
                                         <p className="text-sm font-bold text-gray-900">
                                             {event.registrationFee === 0 ? 'Free' : `₹${event.registrationFee}`}
                                         </p>

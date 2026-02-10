@@ -160,6 +160,17 @@ const CreateEvent = () => {
                                     <option value="merchandise">Merchandise Listing</option>
                                 </select>
                             </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                    Eligibility
+                                </label>
+                                <select name="eligibility" className="input" style={{ paddingLeft: '12px' }} value={formData.eligibility} onChange={handleChange}>
+                                    <option value="All">All</option>
+                                    <option value="IIIT Students Only">IIIT Students Only</option>
+                                    <option value="External Only">External Only</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

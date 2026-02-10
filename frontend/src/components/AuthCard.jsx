@@ -78,7 +78,7 @@ const AuthCard = ({ initialTab = 'login' }) => {
       const role = storedUser?.role || null;
       if (role === 'organizer') navigate('/organizer/dashboard');
       else if (role === 'admin') navigate('/admin/dashboard');
-      else navigate('/dashboard');
+      else navigate('/onboarding');
     } else {
       setError(result.message);
     }
