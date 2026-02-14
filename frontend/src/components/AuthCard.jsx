@@ -12,9 +12,7 @@ const AuthCard = ({ initialTab = 'login' }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
-  // New Fields
-  const [participantType, setParticipantType] = useState('Student');
-  const [isIIIT, setIsIIIT] = useState(false);
+
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -46,13 +44,7 @@ const AuthCard = ({ initialTab = 'login' }) => {
     e.preventDefault();
     setError('');
 
-    // IIIT Validation
-    if (isIIIT) {
-      if (!email.endsWith('iiit.ac.in')) {
-        setError('IIIT Participants must use an @iiit.ac.in email address.');
-        return;
-      }
-    }
+
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -66,8 +58,6 @@ const AuthCard = ({ initialTab = 'login' }) => {
       password,
       contactNumber: '',
       collegeName: '',
-      isIIIT,
-      participantType,
       interests: []
     };
 
@@ -206,27 +196,7 @@ const AuthCard = ({ initialTab = 'login' }) => {
               />
             </div>
 
-            <div className="input-group-row" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-              <select
-                className="input"
-                value={participantType}
-                onChange={(e) => setParticipantType(e.target.value)}
-                style={{ flex: 1 }}
-              >
-                <option value="Student">Student</option>
-                <option value="Faculty">Faculty</option>
-                <option value="External">External</option>
-              </select>
-              <div className="checkbox-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.9rem' }}>
-                <input
-                  type="checkbox"
-                  id="isIIIT"
-                  checked={isIIIT}
-                  onChange={(e) => setIsIIIT(e.target.checked)}
-                />
-                <label htmlFor="isIIIT">I am from IIIT</label>
-              </div>
-            </div>
+
 
             <div className="input-with-icon">
               <span className="icon">
