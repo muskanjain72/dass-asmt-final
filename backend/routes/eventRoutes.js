@@ -8,10 +8,10 @@ const {
     getMyEvents,
     getEventStats
 } = require('../controllers/eventController');
-const { protect, organizer } = require('../middleware/authMiddleware');
+const { protect, optionalProtect, organizer } = require('../middleware/authMiddleware');
 
 // Public routes
-router.get('/', getEvents);
+router.get('/', optionalProtect, getEvents);
 
 // Protected routes (Organizer only)
 router.post('/', protect, organizer, createEvent);

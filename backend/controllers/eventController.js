@@ -53,56 +53,112 @@ const createEvent = async (req, res) => {
  */
 const getEvents = async (req, res) => {
     try {
-        const { keyword, type, startDate, endDate, eligibility, sort } = req.query;
-        let query = { status: { $in: ['published', 'ongoing'] } };
+        const { keyword, type, startDate, endDate, eligibility, sort, limit, page = 1 } = req.query; // Added page default
+
+        // Build Match Stage (Filtering)
+        let matchStage = { status: { $in: ['published', 'ongoing'] } };
 
         if (keyword) {
-            // Fuzzy search using regex on name and description
-            query = {
-                ...query,
-                $or: [
-                    { name: { $regex: keyword, $options: 'i' } },
-                    { description: { $regex: keyword, $options: 'i' } }
-                ]
-            };
+            matchStage.$or = [
+                { name: { $regex: keyword, $options: 'i' } },
+                { description: { $regex: keyword, $options: 'i' } }
+            ];
         }
 
-        if (type) {
-            query.type = type;
-        }
+        if (type) matchStage.type = type;
 
         if (startDate || endDate) {
-            query.startDate = {};
-            if (startDate) query.startDate.$gte = new Date(startDate);
-            if (endDate) query.startDate.$lte = new Date(endDate);
+            matchStage.startDate = {};
+            if (startDate) matchStage.startDate.$gte = new Date(startDate);
+            if (endDate) matchStage.startDate.$lte = new Date(endDate);
         }
 
         if (eligibility && eligibility !== 'All') {
-            query.eligibility = { $in: [eligibility, 'All'] };
+            matchStage.eligibility = { $in: [eligibility, 'All'] };
         }
 
         // Trending filter logic: top 5 in last 24h
         if (sort === 'trending') {
             const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            query.createdAt = { $gte: yesterday };
+            matchStage.createdAt = { $gte: yesterday };
         }
 
-        let eventsQuery = Event.find(query).populate('organizer', 'organizerName');
+        // Determine user interests for personalization
+        const userInterests = req.user?.interests || [];
+
+        // Aggregation Pipeline
+        const pipeline = [
+            { $match: matchStage },
+            // Add matchScore based on intersection of event tags and user interests
+            {
+                $addFields: {
+                    matchScore: {
+                        $size: {
+                            $setIntersection: ["$tags", userInterests]
+                        }
+                    }
+                }
+            }
+        ];
 
         // Sorting
+        let sortStage = {};
         if (sort === 'trending') {
-            eventsQuery = eventsQuery.sort({ registeredCount: -1 }).limit(5);
+            sortStage = { registeredCount: -1 };
         } else {
-            eventsQuery = eventsQuery.sort({ startDate: 1 });
+            // Default: Prioritize matchScore, then startDate
+            sortStage = { matchScore: -1, startDate: 1 };
+        }
+        pipeline.push({ $sort: sortStage });
+
+        // Pagination & Limit
+        // If sorting by trending, we might want a hard limit as per original logic (limit 5)
+        // But let's support general pagination too if needed.
+        if (limit) {
+            pipeline.push({ $limit: parseInt(limit) });
         }
 
-        // Limit
-        if (req.query.limit) {
-            eventsQuery = eventsQuery.limit(parseInt(req.query.limit));
-        }
+        // Populate Organizer (Aggregation specific lookups are complex, let's use helper or simple lookup)
+        // $lookup replacement for populate('organizer', 'organizerName')
+        pipeline.push({
+            $lookup: {
+                from: 'users',
+                localField: 'organizer',
+                foreignField: '_id',
+                as: 'organizer'
+            }
+        });
 
-        const events = await eventsQuery;
+        // Unwind organizer array (lookup returns array) and project only needed fields
+        pipeline.push({
+            $unwind: { path: '$organizer', preserveNullAndEmptyArrays: true }
+        });
+
+        // Project final fields (cleaning up organizer object to match populate behavior)
+        pipeline.push({
+            $project: {
+                name: 1,
+                description: 1,
+                type: 1,
+                status: 1,
+                eligibility: 1,
+                registrationDeadline: 1,
+                startDate: 1,
+                endDate: 1,
+                registrationLimit: 1,
+                registrationFee: 1,
+                tags: 1,
+                merchandiseStock: 1,
+                registeredCount: 1,
+                matchScore: 1, // Debug purpose or UI
+                'organizer._id': 1,
+                'organizer.organizerName': 1
+            }
+        });
+
+        const events = await Event.aggregate(pipeline);
         res.json(events);
+
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

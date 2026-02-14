@@ -10,6 +10,8 @@ const ProfilePage = () => {
         participantType: '',
         // Organizer fields
         organizerName: '', category: '', description: '', contactEmail: '', discordWebhookUrl: '',
+        // Interests
+        interests: [],
         // Password update
         password: ''
     });
@@ -31,6 +33,7 @@ const ProfilePage = () => {
                 description: user.description || '',
                 contactEmail: user.contactEmail || '',
                 discordWebhookUrl: user.discordWebhookUrl || '',
+                interests: user.interests || [],
                 password: '' // Reset password field on load
             }));
         }
@@ -38,6 +41,28 @@ const ProfilePage = () => {
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const [newInterest, setNewInterest] = useState('');
+
+    const handleAddInterest = () => {
+        if (!newInterest.trim()) return;
+        if (formData.interests.includes(newInterest.trim())) {
+            setNewInterest('');
+            return;
+        }
+        setFormData(prev => ({
+            ...prev,
+            interests: [...prev.interests, newInterest.trim()]
+        }));
+        setNewInterest('');
+    };
+
+    const handleRemoveInterest = (interestToRemove) => {
+        setFormData(prev => ({
+            ...prev,
+            interests: prev.interests.filter(i => i !== interestToRemove)
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -182,6 +207,55 @@ const ProfilePage = () => {
                                     <option value="Faculty">Faculty</option>
                                     <option value="External">External</option>
                                 </select>
+                            </div>
+
+                            {/* Interests Section */}
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#374151' }}>Interests & Preferences</label>
+                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                    <input
+                                        type="text"
+                                        className="input"
+                                        placeholder="Add an interest (e.g. Music, Tech)"
+                                        value={newInterest}
+                                        onChange={(e) => setNewInterest(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddInterest())}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="btn-outline"
+                                        onClick={handleAddInterest}
+                                        style={{ whiteSpace: 'nowrap' }}
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    {formData.interests.map((interest, index) => (
+                                        <div key={index} style={{
+                                            backgroundColor: '#e0e7ff',
+                                            color: '#4338ca',
+                                            padding: '0.25rem 0.75rem',
+                                            borderRadius: '9999px',
+                                            fontSize: '0.875rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem'
+                                        }}>
+                                            <span>{interest}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveInterest(interest)}
+                                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#4338ca', fontSize: '1rem', lineHeight: 1 }}
+                                            >
+                                                &times;
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {formData.interests.length === 0 && (
+                                        <span style={{ color: '#9ca3af', fontSize: '0.875rem', fontStyle: 'italic' }}>No interests added yet.</span>
+                                    )}
+                                </div>
                             </div>
                         </>
                     ) : (
