@@ -1,5 +1,4 @@
-const Event = require('../models/Event');
-const User = require('../models/User');
+const Ticket = require('../models/Ticket');
 
 /*
  * @desc    Create a new Event (Draft)
@@ -52,6 +51,7 @@ const createEvent = async (req, res) => {
  * @access  Public
  */
 const getEvents = async (req, res) => {
+    // ... existing getEvents code ...
     try {
         const { keyword, type, startDate, endDate, eligibility, sort, limit, page = 1 } = req.query; // Added page default
 
@@ -320,8 +320,23 @@ const getMyEvents = async (req, res) => {
             ]
         }).sort({ createdAt: -1 });
 
-        console.log(`[DEBUG] Found ${events.length} events for organizer ${userId}`);
-        res.json(events);
+        // Add attendance and enriched status
+        const enrichedEvents = await Promise.all(events.map(async (event) => {
+            const attendanceCount = await Ticket.countDocuments({
+                eventId: event._id,
+                scannedAt: { $exists: true }
+            });
+
+            // Determine dynamic status for UI if needed (though UI handles it)
+            // But we mainly need attendanceCount
+            return {
+                ...event.toObject(),
+                attendanceCount
+            };
+        }));
+
+        console.log(`[DEBUG] Found ${enrichedEvents.length} events for organizer ${userId}`);
+        res.json(enrichedEvents);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
