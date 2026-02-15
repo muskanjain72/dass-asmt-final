@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 import Navbar from './components/Navbar';
 import LoginPage from './pages/LoginPage';
@@ -41,6 +42,7 @@ const MainLayout = ({ children }) => {
       <main>
         {children}
       </main>
+      <Toaster position="top-right" />
     </div>
   );
 };
