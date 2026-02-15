@@ -349,6 +349,32 @@ const scanTicket = async (req, res) => {
     }
 };
 
+/*
+ * @desc    Get Pending Verifications (Organizer)
+ * @route   GET /api/tickets/organizer/pending
+ * @access  Private/Organizer
+ */
+const getPendingVerifications = async (req, res) => {
+    try {
+        // Find all events by this organizer
+        const events = await Event.find({ organizer: req.user._id });
+        const eventIds = events.map(e => e._id);
+
+        // Find tickets for these events with pending_approval status
+        const tickets = await Ticket.find({
+            eventId: { $in: eventIds },
+            paymentStatus: { $in: ['pending_approval', 'rejected'] } // Optionally show rejected too for reference
+        })
+            .populate('eventId', 'name type registrationFee')
+            .populate('participantId', 'firstName lastName email')
+            .sort({ updatedAt: -1 });
+
+        res.json(tickets);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     registerForEvent,
     getMyTickets,
@@ -357,5 +383,6 @@ module.exports = {
     uploadPaymentProof,
     approveOrder,
     rejectOrder,
-    scanTicket
+    scanTicket,
+    getPendingVerifications
 };

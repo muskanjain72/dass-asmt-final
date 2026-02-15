@@ -166,36 +166,41 @@ const BrowseEvents = () => {
                     [1, 2, 3, 4, 5, 6].map(i => <div key={i} className="saas-card h-80 animate-pulse bg-gray-100 border-none"></div>)
                 ) : (
                     events.map(event => (
-                        <div key={event._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col items-center text-center transition-all hover:shadow-lg hover:-translate-y-1">
-
-                            <span className={`inline-block px-3 py-1 mb-4 text-xs font-bold tracking-wider uppercase rounded-full ${event.type === 'normal' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
-                                {event.type}
-                            </span>
-
-                            <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">{event.name}</h3>
-
-                            <p className="text-sm text-gray-500 mb-6 font-medium">
-                                by <span className="text-purple-600">{event.organizer?.organizerName}</span>
-                            </p>
-
-                            <div className="space-y-2 w-full mb-8">
-                                <div className="flex justify-between items-center text-sm border-b border-gray-50 pb-2">
-                                    <span className="text-gray-400 font-medium">Date</span>
-                                    <span className="text-gray-900 font-bold">{new Date(event.startDate).toLocaleDateString()}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm border-b border-gray-50 pb-2">
-                                    <span className="text-gray-400 font-medium">Fee</span>
-                                    <span className="text-gray-900 font-bold">{event.registrationFee === 0 ? "Free" : `₹${event.registrationFee}`}</span>
-                                </div>
+                        <div key={event._id}
+                            className="saas-card hover:shadow-lg transition-shadow cursor-pointer flex flex-col justify-between"
+                            onClick={() => window.location.href = `/events/${event._id}`}
+                            style={{
+                                padding: '24px',
+                                gap: '12px',
+                                borderLeft: event.type === 'merchandise' ? '6px solid #10b981' : '1px solid #e5e7eb'
+                            }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <span className={`badge ${event.type === 'normal' ? 'badge-blue' : 'badge-green'}`} style={{ fontSize: '0.7rem' }}>
+                                    {event.type}
+                                </span>
+                                <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 'bold' }}>
+                                    {event.registrationFee === 0 ? 'FREE' : `₹${event.registrationFee}`}
+                                </span>
                             </div>
 
-                            <Link
-                                to={`/events/${event._id}`}
-                                className="w-full py-3 rounded-xl bg-gray-50 text-purple-600 font-bold text-sm hover:bg-purple-50 transition-colors"
-                            >
-                                View Details
-                            </Link>
+                            <div>
+                                <h4 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>{event.name}</h4>
+                                <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '4px 0 0 0' }}>
+                                    {new Date(event.startDate).toLocaleDateString()}
+                                </p>
+                                <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '2px 0 0 0' }}>
+                                    by {event.organizer?.organizerName}
+                                </p>
+                            </div>
 
+                            <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '16px', marginTop: 'auto' }}>
+                                <button
+                                    className="link w-full text-center"
+                                    style={{ color: '#6d28d9', fontWeight: '800' }}
+                                >
+                                    View Details &rarr;
+                                </button>
+                            </div>
                         </div>
                     ))
                 )}

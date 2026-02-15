@@ -1,10 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
+import api from '../api/axios';
 
 const TicketModal = ({ ticket, onClose }) => {
+    const [file, setFile] = useState(null);
+    const [uploading, setUploading] = useState(false);
+
     if (!ticket) return null;
 
     const event = ticket.eventId;
     const isMerch = event?.type === 'merchandise';
+    const showUpload = ticket.paymentStatus === 'pending' || ticket.paymentStatus === 'rejected';
+    const isPendingApproval = ticket.paymentStatus === 'pending_approval';
+
+    const handleUpload = async () => {
+        if (!file) {
+            alert("Please select a file first");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('paymentProof', file);
+
+        try {
+            setUploading(true);
+            await api.post(`/tickets/${ticket._id}/payment-proof`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            alert('Payment proof uploaded successfully! Awaiting approval.');
+            window.location.reload(); // Simple refresh to show updated status
+        } catch (error) {
+            console.error(error);
+            alert('Failed to upload proof.');
+        } finally {
+            setUploading(false);
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
@@ -27,11 +57,10 @@ const TicketModal = ({ ticket, onClose }) => {
                         <p className="text-purple-600 font-medium">{event?.organizer?.organizerName || 'Organizer'}</p>
                     </div>
 
-                    {/* QR Code Placeholder */}
-                    <div className="w-48 h-48 bg-gray-100 rounded-xl flex items-center justify-center mb-6 border-2 border-dashed border-purple-200">
+                    {/* QR Code / Payment Status */}
+                    <div className="w-48 h-48 bg-gray-100 rounded-xl flex items-center justify-center mb-6 border-2 border-dashed border-purple-200 relative overflow-hidden">
                         {ticket.qrCodeData ? (
                             <div className="text-center p-4">
-                                {/* In a real app, use a QR component here */}
                                 <div className="bg-white p-2 rounded shadow-sm inline-block">
                                     <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-900">
                                         <rect x="3" y="3" width="7" height="7"></rect>
@@ -44,7 +73,37 @@ const TicketModal = ({ ticket, onClose }) => {
                                 <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-widest">Scan for verification</p>
                             </div>
                         ) : (
-                            <p className="text-gray-400 text-sm">No QR available</p>
+                            <div className="text-center p-4 w-full">
+                                {isPendingApproval ? (
+                                    <div className="text-yellow-600">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <p className="font-bold">Verification Pending</p>
+                                        <p className="text-xs">Your payment proof is being reviewed.</p>
+                                    </div>
+                                ) : showUpload ? (
+                                    <div className="space-y-2">
+                                        <p className="font-bold text-gray-700">Payment Required</p>
+                                        <p className="text-xs text-red-500 mb-2">{ticket.paymentStatus === 'rejected' ? 'Previous proof rejected.' : 'Upload screenshot of payment.'}</p>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => setFile(e.target.files[0])}
+                                            className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                                        />
+                                        {file && (
+                                            <button
+                                                onClick={handleUpload}
+                                                disabled={uploading}
+                                                className="w-full bg-purple-600 text-white text-xs py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                                            >
+                                                {uploading ? 'Uploading...' : 'Upload Proof'}
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-400 text-sm">No QR available</p>
+                                )}
+                            </div>
                         )}
                     </div>
 
@@ -63,8 +122,10 @@ const TicketModal = ({ ticket, onClose }) => {
                             <span className="font-semibold text-gray-900">{event?.startDate ? new Date(event.startDate).toLocaleDateString() : 'N/A'}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Venue/Mode</span>
-                            <span className="font-semibold text-gray-900">Main Campus</span>
+                            <span className="text-gray-500">Cost/Fee</span>
+                            <span className="font-semibold text-green-600">
+                                {event?.registrationFee ? `₹${event.registrationFee}` : 'Free'}
+                            </span>
                         </div>
                     </div>
                 </div>
