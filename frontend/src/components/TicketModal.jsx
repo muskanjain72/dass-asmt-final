@@ -62,13 +62,11 @@ const TicketModal = ({ ticket, onClose }) => {
                         {ticket.qrCodeData ? (
                             <div className="text-center p-4">
                                 <div className="bg-white p-2 rounded shadow-sm inline-block">
-                                    <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-900">
-                                        <rect x="3" y="3" width="7" height="7"></rect>
-                                        <rect x="14" y="3" width="7" height="7"></rect>
-                                        <rect x="3" y="14" width="7" height="7"></rect>
-                                        <rect x="14" y="14" width="7" height="7"></rect>
-                                        <path d="M7 7h.01M17 7h.01M7 17h.01"></path>
-                                    </svg>
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(ticket.qrCodeData)}`}
+                                        alt="Ticket QR Code"
+                                        className="w-32 h-32"
+                                    />
                                 </div>
                                 <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-widest">Scan for verification</p>
                             </div>

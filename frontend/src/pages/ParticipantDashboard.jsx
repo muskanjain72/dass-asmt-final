@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { Link } from 'react-router-dom';
-import AddToCalendarButton from '../components/AddToCalendarButton';
 import TicketModal from '../components/TicketModal';
 
 const ParticipantDashboard = () => {
@@ -43,6 +42,8 @@ const ParticipantDashboard = () => {
         const isCompleted = eventDate < now && !isCancelled;
 
         switch (activeTab) {
+            case 'All':
+                return true;
             case 'Normal':
                 return event.type === 'normal' && !isCancelled && !isCompleted;
             case 'Merchandise':
@@ -59,11 +60,13 @@ const ParticipantDashboard = () => {
     const getStatusBadgeClass = (status) => {
         switch (status?.toLowerCase()) {
             case 'registered': return 'badge-blue';
+            case 'successful':
             case 'confirmed': return 'badge-green';
             case 'attended': return 'badge-purple';
             case 'cancelled':
             case 'rejected': return 'badge-red';
             case 'pending': return 'badge-gray';
+            case 'pending_approval': return 'badge-orange';
             default: return 'badge-gray';
         }
     };
@@ -110,16 +113,9 @@ const ParticipantDashboard = () => {
 
                                     <div className="space-y-3 mb-6">
                                         <div className="flex items-center text-sm text-gray-500 gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
                                             <span>{new Date(ticket.eventId.startDate).toLocaleDateString()} at {new Date(ticket.eventId.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                         </div>
                                         <div className="flex items-center text-sm text-gray-500 gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
                                             <span>Main Campus</span>
                                         </div>
                                     </div>
@@ -132,7 +128,6 @@ const ParticipantDashboard = () => {
                                     >
                                         View Ticket
                                     </button>
-                                    <AddToCalendarButton event={ticket.eventId} />
                                 </div>
                             </div>
                         ))}
@@ -154,7 +149,7 @@ const ParticipantDashboard = () => {
 
                 <div className="saas-card overflow-hidden !p-0">
                     <div className="border-b border-gray-100 px-6 pt-4 flex gap-8 overflow-x-auto scroller-hide">
-                        {['Normal', 'Merchandise', 'Completed', 'Cancelled/Rejected'].map(tab => (
+                        {['All', 'Normal', 'Merchandise', 'Completed', 'Cancelled/Rejected'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -192,8 +187,8 @@ const ParticipantDashboard = () => {
                                         </td>
                                         <td className="text-gray-600">{ticket.eventId?.organizer?.organizerName}</td>
                                         <td>
-                                            <span className={`badge ${getStatusBadgeClass(ticket.status || ticket.paymentStatus)}`}>
-                                                {ticket.status || ticket.paymentStatus}
+                                            <span className={`badge ${getStatusBadgeClass(ticket.paymentStatus === 'pending_approval' || ticket.paymentStatus === 'rejected' ? ticket.paymentStatus : ticket.status)}`}>
+                                                {(ticket.paymentStatus === 'pending_approval' || ticket.paymentStatus === 'rejected' ? ticket.paymentStatus : ticket.status).replace('_', ' ')}
                                             </span>
                                         </td>
                                         <td className="text-gray-500">{ticket.responses?.teamName || '-'}</td>

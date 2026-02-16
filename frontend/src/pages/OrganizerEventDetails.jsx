@@ -57,6 +57,26 @@ const OrganizerEventDetails = () => {
         }
     };
 
+    const handleApprovePayment = async (ticketId) => {
+        if (!window.confirm('Are you sure you want to approve this payment? This will decrement stock and generate a QR code.')) return;
+        try {
+            await api.put(`/tickets/${ticketId}/approve`);
+            fetchEventData();
+        } catch (error) {
+            alert(error.response?.data?.message || 'Error approving payment');
+        }
+    };
+
+    const handleRejectPayment = async (ticketId) => {
+        if (!window.confirm('Reject this payment proof?')) return;
+        try {
+            await api.put(`/tickets/${ticketId}/reject`);
+            fetchEventData();
+        } catch (error) {
+            alert(error.response?.data?.message || 'Error rejecting payment');
+        }
+    };
+
     const downloadCSV = () => {
         if (!participants.length) return;
         const headers = ['Name', 'Email', 'Registration Date', 'Status', 'Payment', 'Attendance'];
@@ -122,7 +142,7 @@ const OrganizerEventDetails = () => {
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: '32px', marginBottom: '32px', borderBottom: '1px solid #e5e7eb' }}>
-                {['overview', 'analytics', 'participants', 'scanner'].map((tab) => (
+                {['overview', 'analytics', 'participants', 'payments', 'scanner'].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -139,7 +159,7 @@ const OrganizerEventDetails = () => {
                             transition: 'all 0.2s'
                         }}
                     >
-                        {tab}
+                        {tab === 'payments' ? 'Verification' : tab}
                     </button>
                 ))}
             </div>
@@ -324,6 +344,92 @@ const OrganizerEventDetails = () => {
                     </div>
                 )}
 
+                {activeTab === 'payments' && (
+                    <div style={{ padding: '32px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h3 className="section-title" style={{ margin: 0 }}>Payment Verification</h3>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <span className="badge badge-orange">
+                                    {participants.filter(p => p.paymentStatus === 'pending_approval').length} Pending Approval
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="saas-table-container">
+                            <table className="saas-table">
+                                <thead>
+                                    <tr>
+                                        <th>Participant</th>
+                                        <th>Ticket ID</th>
+                                        <th>Payment Status</th>
+                                        <th>Proof</th>
+                                        <th style={{ textAlign: 'right' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {participants.filter(p => p.paymentStatus !== 'free' && p.paymentStatus !== 'pending').map((ticket) => (
+                                        <tr key={ticket._id}>
+                                            <td>
+                                                <p style={{ fontWeight: 'bold', margin: 0 }}>{ticket.participantId.firstName} {ticket.participantId.lastName}</p>
+                                                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>{ticket.participantId.email}</p>
+                                            </td>
+                                            <td style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>#{ticket.ticketId}</td>
+                                            <td>
+                                                <span className={`badge ${ticket.paymentStatus === 'completed' ? 'badge-green' : ticket.paymentStatus === 'rejected' ? 'badge-red' : 'badge-orange'}`}>
+                                                    {ticket.paymentStatus.replace('_', ' ')}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {ticket.paymentProof ? (
+                                                    <a
+                                                        href={`${api.defaults.baseURL.replace('/api', '')}${ticket.paymentProof}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-purple-600 font-bold hover:underline py-1 px-3 rounded-lg bg-purple-50"
+                                                        style={{ fontSize: '0.8rem' }}
+                                                    >
+                                                        View Proof
+                                                    </a>
+                                                ) : (
+                                                    <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>No proof uploaded</span>
+                                                )}
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                {ticket.paymentStatus === 'pending_approval' && (
+                                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                        <button
+                                                            onClick={() => handleApprovePayment(ticket._id)}
+                                                            className="btn-primary"
+                                                            style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: '#10b981' }}
+                                                        >
+                                                            Approve
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleRejectPayment(ticket._id)}
+                                                            className="btn-outline"
+                                                            style={{ padding: '6px 12px', fontSize: '0.8rem', borderColor: '#ef4444', color: '#ef4444' }}
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                {ticket.paymentStatus === 'completed' && <span style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 'bold' }}>✓ Approved</span>}
+                                                {ticket.paymentStatus === 'rejected' && <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 'bold' }}>✕ Rejected</span>}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {participants.filter(p => p.paymentStatus !== 'free' && p.paymentStatus !== 'pending').length === 0 && (
+                                        <tr>
+                                            <td colSpan="5" style={{ padding: '48px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
+                                                No payment submissions yet.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
                 {activeTab === 'scanner' && (
                     <div style={{ padding: '48px 32px', textAlign: 'center' }}>
                         <div style={{ maxWidth: '400px', margin: '0 auto' }}>
