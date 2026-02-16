@@ -11,7 +11,7 @@ const QRScanner = ({ onScanSuccess }) => {
     useEffect(() => {
         // Initialize Scanner
         const scanner = new Html5QrcodeScanner(
-            "reader", 
+            "reader",
             { fps: 10, qrbox: { width: 250, height: 250 } },
             /* verbose= */ false
         );
@@ -19,7 +19,7 @@ const QRScanner = ({ onScanSuccess }) => {
         scanner.render(handleScan, (err) => console.log(err));
 
         return () => {
-             scanner.clear().catch(error => console.error("Failed to clear scanner", error));
+            scanner.clear().catch(error => console.error("Failed to clear scanner", error));
         };
     }, []);
 
@@ -28,13 +28,14 @@ const QRScanner = ({ onScanSuccess }) => {
         setScanResult(null);
         try {
             const body = type === 'qr' ? { qrPayload: payload } : { manualTicketId: payload };
-            const { data } = await api.post('/tickets/scan', body);
+            // Pass eventId for strict validation
+            const { data } = await api.post('/tickets/scan', { ...body, eventId: onScanSuccess?.eventId });
             setScanResult({ type: 'success', ...data });
-            if (onScanSuccess) onScanSuccess();
+            if (onScanSuccess) onScanSuccess.callback();
         } catch (error) {
-            setScanResult({ 
-                type: 'error', 
-                message: error.response?.data?.message || 'Verification Failed' 
+            setScanResult({
+                type: 'error',
+                message: error.response?.data?.message || 'Verification Failed'
             });
         } finally {
             setProcessing(false);
@@ -48,7 +49,7 @@ const QRScanner = ({ onScanSuccess }) => {
         console.log(`Scan result: ${decodedText}`);
         // Simple throttle to avoid rapid fires on same code if library doesn't handle it
         if (!processing) {
-             verifyTicket(decodedText, 'qr');
+            verifyTicket(decodedText, 'qr');
         }
     };
 
@@ -60,14 +61,14 @@ const QRScanner = ({ onScanSuccess }) => {
     return (
         <div className="max-w-md mx-auto p-4 bg-white rounded shadow text-center">
             <h3 className="text-lg font-bold mb-4">Ticket Scanner</h3>
-            
+
             <div id="reader" className="w-full mb-4"></div>
 
             <div className="border-t pt-4">
                 <p className="text-sm text-gray-500 mb-2">Or enter ID manually</p>
                 <form onSubmit={handleManualSubmit} className="flex gap-2">
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         value={manualId}
                         onChange={(e) => setManualId(e.target.value)}
                         placeholder="TKT-XXXX..."
@@ -85,10 +86,10 @@ const QRScanner = ({ onScanSuccess }) => {
                     </p>
                     <p className="mt-1">{scanResult.message}</p>
                     {scanResult.participant && (
-                         <div className="mt-2 text-sm text-left bg-white p-2 rounded opacity-90">
-                             <p><strong>Particpant:</strong> {scanResult.participant.firstName} {scanResult.participant.lastName}</p>
-                             <p><strong>Email:</strong> {scanResult.participant.email}</p>
-                         </div>
+                        <div className="mt-2 text-sm text-left bg-white p-2 rounded opacity-90">
+                            <p><strong>Particpant:</strong> {scanResult.participant.firstName} {scanResult.participant.lastName}</p>
+                            <p><strong>Email:</strong> {scanResult.participant.email}</p>
+                        </div>
                     )}
                 </div>
             )}

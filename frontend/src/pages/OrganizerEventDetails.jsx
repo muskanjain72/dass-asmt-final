@@ -68,12 +68,39 @@ const OrganizerEventDetails = () => {
     };
 
     const handleRejectPayment = async (ticketId) => {
-        if (!window.confirm('Reject this payment proof?')) return;
+        if (!window.confirm('Reject this payment proof?')) return; // Keeping the confirm dialog
         try {
             await api.put(`/tickets/${ticketId}/reject`);
             fetchEventData();
         } catch (error) {
-            alert(error.response?.data?.message || 'Error rejecting payment');
+            console.error("Error rejecting payment", error); // Changed from alert
+        }
+    };
+
+    const handleMarkAttendance = async (ticketId) => {
+        if (!window.confirm('Manually mark this participant as attended?')) return;
+        try {
+            await api.post('/tickets/scan', { manualTicketId: ticketId, eventId: id });
+            fetchEventData();
+        } catch (error) {
+            console.error("Error marking attendance", error);
+            alert(error.response?.data?.message || 'Error marking attendance');
+        }
+    };
+
+    const handleExportAttendance = async () => {
+        try {
+            const response = await api.get(`/tickets/event/${id}/export`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `attendance-${event.name.replace(/\s+/g, '_')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Error exporting attendance", error);
+            alert('Error exporting attendance data.');
         }
     };
 
@@ -276,26 +303,42 @@ const OrganizerEventDetails = () => {
 
                 {activeTab === 'participants' && (
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '24px 32px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                            <div className="input-with-icon" style={{ flex: 1, maxWidth: '400px' }}>
-                                <span className="icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                                </span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 32px', borderBottom: '1px solid #f3f4f6' }}>
+                            <div className="flex items-center gap-4">
+                                <h3 className="section-title" style={{ margin: 0 }}>Participant List</h3>
+                                <button onClick={handleExportAttendance} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', padding: '6px 12px' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Export CSV Report
+                                </button>
+                            </div>
+                            <div style={{ position: 'relative' }}>
                                 <input
                                     type="text"
-                                    className="input"
-                                    placeholder="Search by name, email or ID..."
+                                    placeholder="Search by name or email..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
+                                    style={{
+                                        padding: '10px 16px',
+                                        paddingLeft: '40px',
+                                        borderRadius: '12px',
+                                        border: '1px solid #e5e7eb',
+                                        fontSize: '0.9rem',
+                                        width: '280px',
+                                        outline: 'none'
+                                    }}
                                 />
+                                <svg
+                                    style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}
+                                    xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
                             </div>
-                            <button onClick={downloadCSV} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                Export CSV
-                            </button>
                         </div>
 
-                        <div style={{ overflowX: 'auto' }}>
+                        <div className="saas-table-container">
                             <table className="saas-table">
                                 <thead>
                                     <tr>
@@ -304,7 +347,8 @@ const OrganizerEventDetails = () => {
                                         <th style={{ padding: '20px' }}>Ticket ID</th>
                                         <th style={{ padding: '20px' }}>Payment</th>
                                         <th style={{ padding: '20px' }}>Team</th>
-                                        <th style={{ padding: '20px 32px' }}>Attendance</th>
+                                        <th style={{ padding: '20px' }}>Attendance</th>
+                                        <th style={{ padding: '20px 32px' }}>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -324,10 +368,20 @@ const OrganizerEventDetails = () => {
                                                 </span>
                                             </td>
                                             <td style={{ color: '#6b7280' }}>Individual</td>
-                                            <td style={{ padding: '16px 32px' }}>
+                                            <td style={{ padding: '16px' }}>
                                                 <span className={`badge ${ticket.scannedAt ? 'badge-green' : 'badge-gray'}`} style={{ width: '80px', textAlign: 'center' }}>
                                                     {ticket.scannedAt ? 'Present' : 'Absent'}
                                                 </span>
+                                            </td>
+                                            <td style={{ padding: '16px 32px' }}>
+                                                {!ticket.scannedAt && (ticket.status === 'Successful' || ticket.paymentStatus === 'free') && (
+                                                    <button
+                                                        onClick={() => handleMarkAttendance(ticket.ticketId)}
+                                                        className="text-purple-600 font-bold hover:underline text-xs"
+                                                    >
+                                                        Check-in
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -447,8 +501,11 @@ const OrganizerEventDetails = () => {
                                 </div>
                             </div>
 
-                            <QRScanner onScanSuccess={() => {
-                                setTimeout(() => fetchEventData(), 800);
+                            <QRScanner onScanSuccess={{
+                                eventId: id,
+                                callback: () => {
+                                    setTimeout(() => fetchEventData(), 800);
+                                }
                             }} />
                         </div>
                     </div>

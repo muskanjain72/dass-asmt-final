@@ -8,7 +8,9 @@ const {
     uploadPaymentProof,
     approveOrder,
     rejectOrder,
-    getPendingVerifications
+    scanTicket,
+    getPendingVerifications,
+    exportAttendanceCSV
 } = require('../controllers/ticketController');
 const { protect, organizer } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -25,5 +27,9 @@ router.get('/event/:eventId', protect, organizer, getEventParticipants);
 router.post('/:id/payment-proof', protect, upload.single('paymentProof'), uploadPaymentProof);
 router.put('/:id/approve', protect, organizer, approveOrder);
 router.put('/:id/reject', protect, organizer, rejectOrder);
+
+// Attendance Routes
+router.post('/scan', protect, organizer, scanTicket);
+router.get('/event/:eventId/export', protect, organizer, exportAttendanceCSV);
 
 module.exports = router;

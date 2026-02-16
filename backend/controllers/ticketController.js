@@ -289,26 +289,18 @@ const rejectOrder = async (req, res) => {
  */
 const scanTicket = async (req, res) => {
     try {
-        const { qrPayload, manualTicketId } = req.body;
+        const { qrPayload, manualTicketId, eventId } = req.body;
         let ticket;
 
         // Find Ticket
         if (manualTicketId) {
             ticket = await Ticket.findOne({ ticketId: manualTicketId }).populate('eventId participantId');
         } else if (qrPayload) {
-            // Basic parsing assume payload contains ticketId at end or is unique enough. 
-            // Our format: `EVENT:ID-USER:ID-TKT:ID`
-            // Simple regex or split could work. Or if we just trust scanning exact string if stored equal.
-            // Let's rely on extracting TKT ID or creating a more robust lookup.
-            // If payload IS the ticketId or contains it.
-            // For strict security, parse the payload.
-            // Example payload: "EVENT:67a3...-USER:67a3...-TKT:TKT-1A2B..."
             const parts = qrPayload.split('-TKT:');
             if (parts.length > 1) {
                 const tId = parts[1];
                 ticket = await Ticket.findOne({ ticketId: tId }).populate('eventId participantId');
             } else {
-                // Fallback if payload implies direct search
                 ticket = await Ticket.findOne({ qrCodeData: qrPayload }).populate('eventId participantId');
             }
         }
@@ -316,10 +308,13 @@ const scanTicket = async (req, res) => {
         if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found' });
 
         // Verify Event Ownership
-        // Ideally we pass eventId in body to check if this ticket belongs to THIS event being scanned
-        // But if just verifying any ticket:
         if (ticket.eventId.organizer.toString() !== req.user._id.toString()) {
             return res.status(401).json({ success: false, message: 'Ticket does not belong to your events' });
+        }
+
+        // Verify it belongs to the SPECIFIC event being scanned
+        if (eventId && ticket.eventId._id.toString() !== eventId) {
+            return res.status(400).json({ success: false, message: 'Ticket is for a different event' });
         }
 
         // Check if Paid (if merch) or Approved
@@ -386,6 +381,38 @@ const getPendingVerifications = async (req, res) => {
     }
 };
 
+/*
+ * @desc    Export Attendance CSV
+ * @route   GET /api/tickets/event/:eventId/export
+ * @access  Private/Organizer
+ */
+const exportAttendanceCSV = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const event = await Event.findById(eventId);
+        if (!event) return res.status(404).json({ message: 'Event not found' });
+        if (event.organizer.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        const tickets = await Ticket.find({ eventId })
+            .populate('participantId', 'firstName lastName email')
+            .sort({ scannedAt: -1 });
+
+        let csv = 'TicketID,FirstName,LastName,Email,RegistrationStatus,PaymentStatus,Attended,ScannedAt\n';
+        tickets.forEach(t => {
+            csv += `${t.ticketId},${t.participantId?.firstName || ''},${t.participantId?.lastName || ''},${t.participantId?.email || ''},${t.status},${t.paymentStatus},${t.scannedAt ? 'Yes' : 'No'},${t.scannedAt ? t.scannedAt.toISOString() : ''}\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=attendance-${eventId}.csv`);
+        res.status(200).send(csv);
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     registerForEvent,
     getMyTickets,
@@ -395,5 +422,6 @@ module.exports = {
     approveOrder,
     rejectOrder,
     scanTicket,
-    getPendingVerifications
+    getPendingVerifications,
+    exportAttendanceCSV
 };
