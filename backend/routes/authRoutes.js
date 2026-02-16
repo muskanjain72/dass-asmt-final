@@ -27,4 +27,13 @@ router.post('/reset-request', async (req, res) => {
     }
 });
 
+router.get('/reset-status/:email', async (req, res) => {
+    try {
+        const requests = await PasswordResetRequest.find({ email: req.params.email }).sort({ createdAt: -1 });
+        res.json(requests);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;

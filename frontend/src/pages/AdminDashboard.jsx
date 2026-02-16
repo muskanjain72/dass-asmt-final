@@ -290,25 +290,40 @@ const AdminDashboard = () => {
                         <table className="saas-table" style={{ border: 'none' }}>
                             <thead>
                                 <tr>
-                                    <th style={{ padding: '20px 32px' }}>Organizer</th>
-                                    <th style={{ padding: '20px' }}>Email</th>
-                                    <th style={{ padding: '20px' }}>Reason</th>
+                                    <th style={{ padding: '20px 32px' }}>Organizer / Club</th>
+                                    <th style={{ padding: '20px' }}>Details / Reason</th>
                                     <th style={{ padding: '20px' }}>Requested</th>
                                     <th style={{ padding: '20px' }}>Status</th>
+                                    <th style={{ padding: '20px' }}>Admin Response</th>
                                     <th style={{ padding: '20px 32px', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody style={{ borderTop: '1px solid #f3f4f6' }}>
                                 {requests.map((req) => (
                                     <tr key={req._id}>
-                                        <td style={{ padding: '20px 32px', fontWeight: 'bold' }}>{req.organizerName || 'Unknown Club'}</td>
-                                        <td style={{ color: '#4b5563' }}>{req.email}</td>
-                                        <td style={{ color: '#4b5563' }}>{req.reason}</td>
-                                        <td style={{ color: '#4b5563' }}>{new Date(req.createdAt).toLocaleDateString()}</td>
+                                        <td style={{ padding: '20px 32px' }}>
+                                            <div style={{ fontWeight: 'bold', color: '#111827' }}>{req.organizerName || 'Unknown Club'}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{req.email}</div>
+                                        </td>
+                                        <td style={{ padding: '20px' }}>
+                                            <div style={{ fontSize: '0.85rem', color: '#374151', maxWidth: '250px', whiteSpace: 'normal' }}>
+                                                {req.reason}
+                                            </div>
+                                        </td>
+                                        <td style={{ color: '#4b5563', fontSize: '0.85rem' }}>{new Date(req.createdAt).toLocaleDateString()}</td>
                                         <td>
-                                            <span className={`badge ${req.status === 'pending' ? 'badge-blue' : req.status === 'approved' ? 'badge-green' : 'badge-red'}`}>
+                                            <span className={`badge ${req.status === 'pending' ? 'badge-blue' : req.status === 'approved' ? 'badge-green' : 'badge-red'}`} style={{ textTransform: 'capitalize' }}>
                                                 {req.status}
                                             </span>
+                                        </td>
+                                        <td style={{ padding: '20px' }}>
+                                            {req.adminResponse ? (
+                                                <div style={{ fontSize: '0.75rem', color: '#6b7280', fontStyle: 'italic', maxWidth: '150px' }}>
+                                                    "{req.adminResponse}"
+                                                </div>
+                                            ) : (
+                                                <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>—</span>
+                                            )}
                                         </td>
                                         <td style={{ padding: '20px 32px', textAlign: 'right' }}>
                                             {req.status === 'pending' ? (
@@ -327,7 +342,10 @@ const AdminDashboard = () => {
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <span style={{ fontSize: '0.85rem', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', fontStyle: 'italic' }}>Handled</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', color: '#9ca3af', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                                    RESOLVED
+                                                </div>
                                             )}
                                         </td>
                                     </tr>
