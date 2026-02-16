@@ -22,7 +22,7 @@ const ticketSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['registered', 'attended', 'cancelled', 'completed'],
+        enum: ['pending', 'registered', 'Successful', 'attended', 'cancelled', 'completed', 'rejected'],
         default: 'registered'
     },
     // Store answers to the event's custom form
@@ -47,8 +47,8 @@ const ticketSchema = new mongoose.Schema({
         type: Date
     },
     scannedBy: {
-         type: mongoose.Schema.Types.ObjectId,
-         ref: 'User'
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
 }, { timestamps: true });
 

@@ -35,11 +35,8 @@ const registerForEvent = async (req, res) => {
         }
 
         // 3. Check Duplicate Registration
-        // A user can buy multiple merch items potentially, but for Normal events usually 1 per user.
-        // For this system, let's strictly enforce 1 ticket per Event per User for Simplicity unless logic demands otherwise.
         const existingTicket = await Ticket.findOne({ participantId: userId, eventId: eventId, status: { $ne: 'cancelled' } });
         if (existingTicket) {
-            // If merchandise, maybe allow multiple? For now, Stick to 1 transaction per event for simplicity.
             return res.status(400).json({ message: 'You are already registered/purchased for this event' });
         }
 
@@ -54,37 +51,35 @@ const registerForEvent = async (req, res) => {
             }
         }
 
+        const isPaid = event.registrationFee > 0 || event.type === 'merchandise';
+
         // 5. Create Ticket
         const newTicket = new Ticket({
             ticketId: generateTicketId(),
             participantId: userId,
             eventId: eventId,
-            status: 'registered',
-            // Only generate QR if free or after payment. 
-            // For now, generate placeholder or empty if pending.
-            qrCodeData: (event.registrationFee > 0 || event.type === 'merchandise') ? '' : `EVENT:${eventId}-USER:${userId}`,
-            paymentStatus: (event.registrationFee > 0 || event.type === 'merchandise') ? 'pending' : 'free',
+            status: isPaid ? 'pending' : 'registered',
+            // Only generate QR if free. For paid, generate after approval.
+            qrCodeData: isPaid ? '' : `EVENT:${eventId}-USER:${userId}`,
+            paymentStatus: isPaid ? 'pending' : 'free',
             responses: formResponses || {},
             purchaseData: purchaseData || {}
         });
 
         await newTicket.save();
 
-        // 6. Update Event Counts & Stock
+        // 6. Update Event Counts (Normal only)
+        // Stock for merchandise is decremented ON APPROVAL
         if (event.type === 'normal') {
             event.registeredCount += 1;
-        } else if (event.type === 'merchandise') {
-            // Decrement stock immediately as requested for purchase
-            event.merchandiseStock = Math.max(0, event.merchandiseStock - 1);
+            await event.save();
         }
-        await event.save();
 
         // 7. Email Workflow (Placeholder/Mock)
         console.log(`[EMAIL] Sending confirmation to ${req.user.email} for Ticket ID: ${newTicket.ticketId}`);
-        // In a real app: await sendConfirmationEmail(req.user.email, newTicket);
 
         res.status(201).json({
-            message: event.type === 'merchandise' ? 'Purchase successful' : 'Registration successful',
+            message: event.type === 'merchandise' ? 'Order placed. Please upload payment proof.' : 'Registration successful',
             ticket: newTicket
         });
 
@@ -100,15 +95,22 @@ const registerForEvent = async (req, res) => {
  */
 const getMyTickets = async (req, res) => {
     try {
+        console.log(`[DEBUG] Fetching tickets for user: ${req.user._id}`);
         const tickets = await Ticket.find({ participantId: req.user._id })
-            .populate('eventId', 'name type startDate endDate organizer status')
-            .populate('eventId.organizer', 'organizerName') // Deep populate if needed
+            .populate({
+                path: 'eventId',
+                select: 'name type startDate endDate organizer status registrationFee',
+                populate: {
+                    path: 'organizer',
+                    select: 'organizerName'
+                }
+            })
             .sort({ createdAt: -1 });
 
-        // Transform for UI if needed or send raw
-        // The UI needs: Event Name, Type, Organizer, Status, Ticket ID
+        console.log(`[DEBUG] Found ${tickets.length} tickets`);
         res.json(tickets);
     } catch (error) {
+        console.error("[DEBUG] Error fetching tickets:", error.message);
         res.status(500).json({ message: error.message });
     }
 };
@@ -134,18 +136,19 @@ const cancelTicket = async (req, res) => {
             return res.status(400).json({ message: 'Ticket already cancelled' });
         }
 
+        // Check if it's already completed
+        if (ticket.paymentStatus === 'completed') {
+            return res.status(400).json({ message: 'Cannot cancel an approved/completed ticket' });
+        }
+
         // Update Ticket
         ticket.status = 'cancelled';
         await ticket.save();
 
-        // Restore Event Counts
+        // Restore Event Counts (Normal only, Merch stock wasn't dec yet unless approved)
         const event = await Event.findById(ticket.eventId);
-        if (event) {
-            if (event.type === 'normal') {
-                event.registeredCount = Math.max(0, event.registeredCount - 1);
-            } else if (event.type === 'merchandise') {
-                event.merchandiseStock += 1;
-            }
+        if (event && event.type === 'normal') {
+            event.registeredCount = Math.max(0, event.registeredCount - 1);
             await event.save();
         }
 
@@ -226,25 +229,25 @@ const approveOrder = async (req, res) => {
             return res.status(400).json({ message: 'Order already approved' });
         }
 
-        // Decrement Stock ATOMICALLY to be safe, though simple decrement here
+        // Decrement Stock ATOMICALLY for merchandise
         if (event.type === 'merchandise') {
             if (event.merchandiseStock <= 0) {
                 return res.status(400).json({ message: 'Stock exhausted, cannot approve.' });
             }
-            event.merchandiseStock -= 1; // Assuming qty 1
+            event.merchandiseStock = Math.max(0, event.merchandiseStock - 1);
             await event.save();
         }
 
         ticket.paymentStatus = 'completed';
-        ticket.status = 'confirmed'; // or registered
-        // Ensure QR is set (it might have been placeholder or empty)
+        ticket.status = 'Successful';
+        // Generate QR on approval
         ticket.qrCodeData = `EVENT:${event._id}-USER:${ticket.participantId}-TKT:${ticket.ticketId}`;
 
         await ticket.save();
 
-        // Send Email logic would be here
+        console.log(`[EMAIL] Sending confirmation with QR to participant for Ticket ID: ${ticket.ticketId}`);
 
-        res.json({ message: 'Order approved', ticket });
+        res.json({ message: 'Order approved successfully', ticket });
 
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -269,6 +272,8 @@ const rejectOrder = async (req, res) => {
         ticket.paymentStatus = 'rejected';
         ticket.status = 'cancelled';
         await ticket.save();
+
+        console.log(`[EMAIL] Notifying participant about payment rejection for Ticket ID: ${ticket.ticketId}`);
 
         res.json({ message: 'Order rejected', ticket });
 
@@ -365,8 +370,14 @@ const getPendingVerifications = async (req, res) => {
             eventId: { $in: eventIds },
             paymentStatus: { $in: ['pending_approval', 'rejected'] } // Optionally show rejected too for reference
         })
-            .populate('eventId', 'name type registrationFee')
-            .populate('participantId', 'firstName lastName email')
+            .populate({
+                path: 'eventId',
+                select: 'name type registrationFee'
+            })
+            .populate({
+                path: 'participantId',
+                select: 'firstName lastName email'
+            })
             .sort({ updatedAt: -1 });
 
         res.json(tickets);

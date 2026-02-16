@@ -1,7 +1,6 @@
 const Ticket = require('../models/Ticket');
 const Event = require('../models/Event');
 const User = require('../models/User'); // Used in webhook logic
-const axios = require('axios');
 
 /*
  * @desc    Create a new Event (Draft)
