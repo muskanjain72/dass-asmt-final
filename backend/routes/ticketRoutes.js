@@ -10,14 +10,16 @@ const {
     rejectOrder,
     scanTicket,
     getPendingVerifications,
-    exportAttendanceCSV
+    exportAttendanceCSV,
+    checkRegistration
 } = require('../controllers/ticketController');
-const { protect, organizer } = require('../middleware/authMiddleware');
+const { protect, organizer, participant } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-router.post('/', protect, registerForEvent);
-router.get('/my-tickets', protect, getMyTickets);
+router.post('/', protect, participant, registerForEvent);
+router.get('/my-tickets', protect, participant, getMyTickets);
 router.put('/:id/cancel', protect, cancelTicket);
+router.get('/check/:eventId', protect, participant, checkRegistration);
 
 // Organizer Routes
 router.get('/organizer/pending', protect, organizer, getPendingVerifications);

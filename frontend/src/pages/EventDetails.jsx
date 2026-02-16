@@ -13,22 +13,28 @@ const EventDetails = () => {
     const [event, setEvent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [registering, setRegistering] = useState(false);
+    const [isRegistered, setIsRegistered] = useState(false);
     const [activeTab, setActiveTab] = useState('details');
 
     useEffect(() => {
-        const fetchEvent = async () => {
+        const fetchEventAndStatus = async () => {
             try {
                 const { data } = await api.get(`/events/${id}`);
                 setEvent(data);
+
+                if (user && user.role === 'participant') {
+                    const { data: regData } = await api.get(`/tickets/check/${id}`);
+                    setIsRegistered(regData.isRegistered);
+                }
             } catch (error) {
-                console.error("Error fetching event", error);
+                console.error("Error fetching event details", error);
                 toast.error("Failed to load event details");
             } finally {
                 setLoading(false);
             }
         };
-        fetchEvent();
-    }, [id]);
+        fetchEventAndStatus();
+    }, [id, user]);
 
     const handleRegister = async () => {
         if (!user) {
@@ -149,7 +155,7 @@ const EventDetails = () => {
                         </div>
                     ) : (
                         <div className="bg-gray-50 rounded-xl p-4 min-h-[300px] border border-gray-100 relative">
-                            {user ? <Forum eventId={id} user={user} /> : (
+                            {user ? <Forum eventId={id} user={user} isRegistered={isRegistered || user.role === 'organizer'} /> : (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 p-6 text-center">
                                     <p className="mb-4 text-sm font-medium">Join the discussion</p>
                                     <button onClick={() => navigate('/login')} className="text-purple-600 font-bold text-sm hover:underline">Log In to Chat</button>

@@ -413,6 +413,16 @@ const exportAttendanceCSV = async (req, res) => {
     }
 };
 
+const checkRegistration = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const ticket = await Ticket.findOne({ eventId, participantId: req.user._id });
+        res.json({ isRegistered: !!ticket, ticket });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     registerForEvent,
     getMyTickets,
@@ -423,5 +433,6 @@ module.exports = {
     rejectOrder,
     scanTicket,
     getPendingVerifications,
-    exportAttendanceCSV
+    exportAttendanceCSV,
+    checkRegistration
 };

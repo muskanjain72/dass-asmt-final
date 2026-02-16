@@ -24,9 +24,14 @@ const messageSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    isAnnouncement: {
+        type: Boolean,
+        default: false
+    },
     reactions: {
         type: Map,
-        of: [mongoose.Schema.Types.ObjectId] // Map of reactionType -> [userIds]
+        of: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // emoji -> [userIds]
+        default: {}
     }
 }, { timestamps: true });
 
