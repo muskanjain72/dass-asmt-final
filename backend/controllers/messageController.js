@@ -121,4 +121,4 @@ const deleteMessage = async (req, res) => {
     }
 };
 
-module.exports = { getMessages, postMessage, togglePin, deleteMessage };
+module.exports = { getMessages, postMessage, togglePin, deleteMessage, reactToMessage };

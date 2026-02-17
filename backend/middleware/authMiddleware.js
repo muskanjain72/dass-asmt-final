@@ -60,5 +60,6 @@ const authorize = (...roles) => {
 
 const admin = authorize('admin');
 const organizer = authorize('organizer');
+const participant = authorize('participant');
 
-module.exports = { protect, optionalProtect, authorize, admin, organizer };
+module.exports = { protect, optionalProtect, authorize, admin, organizer, participant };
