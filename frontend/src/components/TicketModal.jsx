@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../api/axios';
+import AddToCalendarButton from './AddToCalendarButton';
 
 const TicketModal = ({ ticket, onClose }) => {
     const [file, setFile] = useState(null);
@@ -129,20 +130,25 @@ const TicketModal = ({ ticket, onClose }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 flex gap-4">
-                    <button
-                        onClick={() => window.print()}
-                        className="flex-1 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-sm"
-                    >
-                        Print Ticket
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm"
-                        style={{ background: 'var(--primary-gradient)' }}
-                    >
-                        Close
-                    </button>
+                <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 flex flex-col gap-4">
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => window.print()}
+                            className="flex-1 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-sm"
+                        >
+                            Print Ticket
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm"
+                            style={{ background: 'var(--primary-gradient)' }}
+                        >
+                            Close
+                        </button>
+                    </div>
+                    <div className="flex justify-center">
+                        <AddToCalendarButton event={event} className="w-full" />
+                    </div>
                 </div>
             </div>
         </div>

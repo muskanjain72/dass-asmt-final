@@ -31,14 +31,14 @@ export const downloadICS = async (events) => {
 
     const icsEvents = eventList.map(evt => {
         const start = new Date(evt.startDate);
-        const end = new Date(evt.endDate);
+        const end = new Date(evt.endDate || new Date(start.getTime() + 2 * 60 * 60 * 1000));
 
         return {
-            start: [start.getFullYear(), start.getMonth() + 1, start.getDate(), start.getHours(), start.getMinutes()],
-            end: [end.getFullYear(), end.getMonth() + 1, end.getDate(), end.getHours(), end.getMinutes()],
+            start: [start.getUTCFullYear(), start.getUTCMonth() + 1, start.getUTCDate(), start.getUTCHours(), start.getUTCMinutes()],
+            end: [end.getUTCFullYear(), end.getUTCMonth() + 1, end.getUTCDate(), end.getUTCHours(), end.getUTCMinutes()],
             title: evt.name,
             description: evt.description,
-            location: evt.location || 'Online',
+            location: evt.location || 'Main Campus',
             url: window.location.origin + `/events/${evt._id}`,
             status: 'CONFIRMED',
             busyStatus: 'BUSY',

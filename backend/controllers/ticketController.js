@@ -2,6 +2,7 @@ const Ticket = require('../models/Ticket');
 const Event = require('../models/Event');
 const User = require('../models/User');
 const crypto = require('crypto');
+const ics = require('ics');
 
 // Generate unique Ticket ID
 const generateTicketId = () => {
@@ -443,6 +444,92 @@ const checkRegistration = async (req, res) => {
     }
 };
 
+/*
+ * @desc    Export Tickets to ICS format
+ * @route   GET /api/tickets/export-ics
+ * @access  Private/Participant
+ */
+const exportTicketsICS = async (req, res) => {
+    try {
+        const { ids } = req.query;
+        if (!ids) return res.status(400).json({ message: 'Ticket IDs are required' });
+
+        const ticketIds = ids.split(',');
+        const tickets = await Ticket.find({
+            _id: { $in: ticketIds },
+            participantId: req.user._id
+        }).populate('eventId');
+
+        if (tickets.length === 0) return res.status(404).json({ message: 'No tickets found' });
+
+        const icsEvents = tickets.map(ticket => {
+            const event = ticket.eventId;
+            const start = new Date(event.startDate);
+            const end = new Date(event.endDate || new Date(start.getTime() + 2 * 60 * 60 * 1000));
+
+            return {
+                start: [start.getUTCFullYear(), start.getUTCMonth() + 1, start.getUTCDate(), start.getUTCHours(), start.getUTCMinutes()],
+                end: [end.getUTCFullYear(), end.getUTCMonth() + 1, end.getUTCDate(), end.getUTCHours(), end.getUTCMinutes()],
+                title: event.name,
+                description: event.description,
+                location: event.location || 'Main Campus',
+                url: `${req.protocol}://${req.get('host')}/events/${event._id}`,
+                status: 'CONFIRMED',
+                busyStatus: 'BUSY',
+                alarms: [
+                    { action: 'display', description: 'Reminder', trigger: { minutes: 30, before: true } }
+                ]
+            };
+        });
+
+        const { error, value } = ics.createEvents(icsEvents);
+
+        if (error) {
+            console.error("Error generating ICS:", error);
+            return res.status(500).json({ message: 'Error generating calendar file' });
+        }
+
+        res.setHeader('Content-Type', 'text/calendar');
+        res.setHeader('Content-Disposition', `attachment; filename=events.ics`);
+        res.status(200).send(value);
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+/*
+ * @desc    Get Calendar Integration Links
+ * @route   GET /api/tickets/:id/calendar-links
+ * @access  Private/Participant
+ */
+const getCalendarLinks = async (req, res) => {
+    try {
+        const ticket = await Ticket.findOne({
+            _id: req.params.id,
+            participantId: req.user._id
+        }).populate('eventId');
+
+        if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+
+        const event = ticket.eventId;
+        const start = new Date(event.startDate);
+        const end = new Date(event.endDate || new Date(start.getTime() + 2 * 60 * 60 * 1000));
+        const location = event.location || 'Main Campus';
+
+        const formatDate = (date) => date.toISOString().replace(/-|:|\.\d\d\d/g, "");
+
+        const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${formatDate(start)}/${formatDate(end)}&details=${encodeURIComponent(event.description || '')}&location=${encodeURIComponent(location)}`;
+
+        const outlookUrl = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${start.toISOString()}&enddt=${end.toISOString()}&subject=${encodeURIComponent(event.name)}&body=${encodeURIComponent(event.description || '')}&location=${encodeURIComponent(location)}`;
+
+        res.json({ google: googleUrl, outlook: outlookUrl });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     registerForEvent,
     getMyTickets,
@@ -454,5 +541,7 @@ module.exports = {
     scanTicket,
     getPendingVerifications,
     exportAttendanceCSV,
-    checkRegistration
+    checkRegistration,
+    exportTicketsICS,
+    getCalendarLinks
 };

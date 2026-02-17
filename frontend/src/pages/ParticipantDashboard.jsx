@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { Link } from 'react-router-dom';
 import TicketModal from '../components/TicketModal';
+import { downloadICS } from '../utils/calendar';
 
 const ParticipantDashboard = () => {
     const [tickets, setTickets] = useState([]);
@@ -90,9 +91,19 @@ const ParticipantDashboard = () => {
 
             {/* Upcoming Events Section */}
             <section>
-                <div className="flex items-center gap-2 mb-6">
-                    <div className="w-1 h-8 bg-purple-600 rounded-full" style={{ background: 'var(--primary-gradient)' }}></div>
-                    <h2 className="section-title mb-0">Upcoming Events</h2>
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1 h-8 bg-purple-600 rounded-full" style={{ background: 'var(--primary-gradient)' }}></div>
+                        <h2 className="section-title mb-0">Upcoming Events</h2>
+                    </div>
+                    {upcomingTickets.length > 0 && (
+                        <button
+                            onClick={() => downloadICS(upcomingTickets.map(t => t.eventId))}
+                            className="text-sm font-bold text-purple-600 hover:text-purple-700 flex items-center gap-1 border border-purple-200 px-3 py-1.5 rounded-lg hover:bg-purple-50 transition-all"
+                        >
+                            📅 Export All
+                        </button>
+                    )}
                 </div>
 
                 {upcomingTickets.length > 0 ? (
