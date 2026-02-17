@@ -2,6 +2,12 @@ const Ticket = require('../models/Ticket');
 const Event = require('../models/Event');
 const User = require('../models/User'); // Used in webhook logic
 
+const defaultFormFields = [
+    { label: 'Full Name', type: 'text', required: true },
+    { label: 'Email ID', type: 'email', required: true },
+    { label: 'Contact Number', type: 'text', required: true }
+];
+
 /*
  * @desc    Create a new Event (Draft)
  * @route   POST /api/events
@@ -32,7 +38,7 @@ const createEvent = async (req, res) => {
             merchandiseStock,
             merchandiseVariants,
             purchaseLimit,
-            formSchema
+            formSchema: (formSchema && formSchema.length > 0) ? formSchema : defaultFormFields
         });
 
         const createdEvent = await event.save();
@@ -233,11 +239,28 @@ const updateEvent = async (req, res) => {
             // Check for illegal published edits
             const illegalEdits = [];
             if (name && name !== event.name) illegalEdits.push('name');
-            if (startDate && new Date(startDate).getTime() !== new Date(event.startDate).getTime()) illegalEdits.push('startDate');
-            if (endDate && new Date(endDate).getTime() !== new Date(event.endDate).getTime()) illegalEdits.push('endDate');
-            if (registrationFee !== undefined && registrationFee !== event.registrationFee) illegalEdits.push('registrationFee');
+
+            if (startDate) {
+                const newDate = new Date(startDate).getTime();
+                const oldDate = new Date(event.startDate).getTime();
+                if (newDate !== oldDate) illegalEdits.push('startDate');
+            }
+            if (endDate) {
+                const newDate = new Date(endDate).getTime();
+                const oldDate = new Date(event.endDate).getTime();
+                if (newDate !== oldDate) illegalEdits.push('endDate');
+            }
+            if (registrationFee !== undefined && Number(registrationFee) !== Number(event.registrationFee)) {
+                illegalEdits.push('registrationFee');
+            }
             if (eligibility && eligibility !== event.eligibility) illegalEdits.push('eligibility');
-            if (formSchema) illegalEdits.push('formSchema');
+
+            // Allow formSchema edit ONLY if no registrations yet
+            if (formSchema && event.registeredCount > 0) {
+                // If there are registrations, we check if the schema actually changed
+                // (Though simpler is just to block it once registrations start)
+                illegalEdits.push('formSchema');
+            }
 
             if (illegalEdits.length > 0) {
                 return res.status(400).json({
@@ -245,9 +268,12 @@ const updateEvent = async (req, res) => {
                 });
             }
 
-            // Allowed edits for Published: description, registrationDeadline, registrationLimit, tags
+            // Allowed edits for Published: description, registrationDeadline, registrationLimit, tags, formSchema (if resCount 0)
             event.description = description || event.description;
             event.registrationDeadline = registrationDeadline || event.registrationDeadline;
+            if (formSchema && event.registeredCount === 0) {
+                event.formSchema = formSchema;
+            }
 
             if (tags) {
                 event.tags = typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags;

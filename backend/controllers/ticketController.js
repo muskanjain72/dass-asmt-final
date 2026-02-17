@@ -51,6 +51,26 @@ const registerForEvent = async (req, res) => {
             }
         }
 
+        // 5. Validate Required Form Fields
+        if (event.formSchema && event.formSchema.length > 0) {
+            const missingFields = [];
+            event.formSchema.forEach(field => {
+                if (field.required) {
+                    const response = formResponses ? formResponses[field.label] : undefined;
+                    if (response === undefined || response === '' || (Array.isArray(response) && response.length === 0)) {
+                        missingFields.push(field.label);
+                    }
+                }
+            });
+
+            if (missingFields.length > 0) {
+                return res.status(400).json({
+                    message: `Please fill required fields: ${missingFields.join(', ')}`,
+                    missingFields
+                });
+            }
+        }
+
         const isPaid = event.registrationFee > 0 || event.type === 'merchandise';
 
         // 5. Create Ticket

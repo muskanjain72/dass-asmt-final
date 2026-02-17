@@ -24,8 +24,8 @@ const createOrganizer = async (req, res) => {
     try {
         const { organizerName, category, description, contactEmail } = req.body;
 
-        if (!organizerName || !category) {
-            return res.status(400).json({ message: 'Organizer Name and Category are required' });
+        if (!organizerName || !contactEmail) {
+            return res.status(400).json({ message: 'Organizer Name and Contact Email are required' });
         }
 
         // Auto-generate system login credentials
