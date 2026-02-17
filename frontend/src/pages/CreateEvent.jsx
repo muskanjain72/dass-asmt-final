@@ -278,6 +278,7 @@ const CreateEvent = () => {
                                         <option value="number">Number</option>
                                         <option value="dropdown">Selection</option>
                                         <option value="checkbox">Binary (Checkbox)</option>
+                                        <option value="file">File Upload</option>
                                     </select>
                                 </div>
                                 <button type="button" onClick={addCustomField} style={{ height: '46px', backgroundColor: '#10b981', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Add Field</button>

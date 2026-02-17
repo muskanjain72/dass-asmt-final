@@ -2,16 +2,41 @@ import React, { useState } from 'react';
 
 const RegistrationModal = ({ event, onClose, onSubmit, submitting }) => {
     const [responses, setResponses] = useState({});
+    const [uploadingField, setUploadingField] = useState(null);
 
     if (!event) return null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (uploadingField) {
+            alert("Please wait for the file to finish uploading.");
+            return;
+        }
         onSubmit(responses);
     };
 
     const handleChange = (label, value) => {
         setResponses(prev => ({ ...prev, [label]: value }));
+    };
+
+    const handleFileUpload = async (label, file) => {
+        if (!file) return;
+
+        setUploadingField(label);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await api.post('/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            handleChange(label, res.data.url);
+        } catch (error) {
+            console.error('Upload failed:', error);
+            alert('File upload failed. Please try again.');
+        } finally {
+            setUploadingField(null);
+        }
     };
 
     return (
@@ -74,6 +99,24 @@ const RegistrationModal = ({ event, onClose, onSubmit, submitting }) => {
                                                     <span className="text-sm text-gray-600">{opt}</span>
                                                 </label>
                                             ))}
+                                        </div>
+                                    ) : field.type === 'file' ? (
+                                        <div className="space-y-2">
+                                            <input
+                                                type="file"
+                                                required={field.required && !responses[field.label]}
+                                                className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                                                onChange={(e) => handleFileUpload(field.label, e.target.files[0])}
+                                            />
+                                            {uploadingField === field.label && <p className="text-[10px] text-purple-600 animate-pulse">Uploading...</p>}
+                                            {responses[field.label] && (
+                                                <p className="text-[10px] text-green-600 flex items-center gap-1">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                    </svg>
+                                                    File uploaded successfully
+                                                </p>
+                                            )}
                                         </div>
                                     ) : field.type === 'number' ? (
                                         <input

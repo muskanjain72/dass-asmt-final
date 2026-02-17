@@ -547,9 +547,18 @@ const OrganizerEventDetails = () => {
                                         {Object.entries(selectedTicket.responses).map(([label, value], i) => (
                                             <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                                                 <p className="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">{label}</p>
-                                                <p className="text-sm text-gray-900 font-medium">
-                                                    {Array.isArray(value) ? value.join(', ') : (value?.toString() || 'No response')}
-                                                </p>
+                                                <div className="text-sm text-gray-900 font-medium">
+                                                    {typeof value === 'string' && value.startsWith('http') ? (
+                                                        <a href={value} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline flex items-center gap-1">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                            </svg>
+                                                            View File
+                                                        </a>
+                                                    ) : (
+                                                        Array.isArray(value) ? value.join(', ') : (value?.toString() || 'No response')
+                                                    )}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
