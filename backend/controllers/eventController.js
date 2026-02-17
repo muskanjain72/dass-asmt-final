@@ -22,6 +22,15 @@ const createEvent = async (req, res) => {
             merchandiseStock, merchandiseVariants, purchaseLimit, formSchema
         } = req.body;
 
+        // Ensure default fields are present
+        let finalSchema = [...defaultFormFields];
+        if (formSchema && formSchema.length > 0) {
+            // Add custom fields that don't duplicate default labels
+            const defaultLabels = defaultFormFields.map(f => f.label.toLowerCase());
+            const customFields = formSchema.filter(f => !defaultLabels.includes(f.label.toLowerCase()));
+            finalSchema = [...finalSchema, ...customFields];
+        }
+
         const event = new Event({
             organizer: req.user._id,
             name,
@@ -38,7 +47,7 @@ const createEvent = async (req, res) => {
             merchandiseStock,
             merchandiseVariants,
             purchaseLimit,
-            formSchema: (formSchema && formSchema.length > 0) ? formSchema : defaultFormFields
+            formSchema: finalSchema
         });
 
         const createdEvent = await event.save();
@@ -272,7 +281,11 @@ const updateEvent = async (req, res) => {
             event.description = description || event.description;
             event.registrationDeadline = registrationDeadline || event.registrationDeadline;
             if (formSchema && event.registeredCount === 0) {
-                event.formSchema = formSchema;
+                // Ensure default fields are present
+                let finalSchema = [...defaultFormFields];
+                const defaultLabels = defaultFormFields.map(f => f.label.toLowerCase());
+                const customFields = formSchema.filter(f => !defaultLabels.includes(f.label.toLowerCase()));
+                event.formSchema = [...finalSchema, ...customFields];
             }
 
             if (tags) {
@@ -305,7 +318,13 @@ const updateEvent = async (req, res) => {
             if (merchandiseStock !== undefined) event.merchandiseStock = merchandiseStock;
             if (merchandiseVariants !== undefined) event.merchandiseVariants = merchandiseVariants;
             if (purchaseLimit !== undefined) event.purchaseLimit = purchaseLimit;
-            if (formSchema) event.formSchema = formSchema;
+            if (formSchema) {
+                // Ensure default fields are present
+                let finalSchema = [...defaultFormFields];
+                const defaultLabels = defaultFormFields.map(f => f.label.toLowerCase());
+                const customFields = formSchema.filter(f => !defaultLabels.includes(f.label.toLowerCase()));
+                event.formSchema = [...finalSchema, ...customFields];
+            }
         }
 
         // Handle Publication Event (Discord Webhook)

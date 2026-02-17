@@ -79,9 +79,8 @@ const registerForEvent = async (req, res) => {
             ticketId: generateTicketId(),
             participantId: userId,
             eventId: eventId,
-            status: isPaid ? 'pending' : 'registered',
-            // Only generate QR if free. For paid, generate after approval.
-            qrCodeData: isPaid ? '' : `EVENT:${eventId}-USER:${userId}`,
+            status: 'pending', // Always pending for review as per requirement
+            qrCodeData: '', // Generate QR only after approval
             paymentStatus: isPaid ? 'pending' : 'free',
             responses: formResponses || {},
             purchaseData: purchaseData || {}
@@ -291,12 +290,88 @@ const rejectOrder = async (req, res) => {
         }
 
         ticket.paymentStatus = 'rejected';
-        ticket.status = 'cancelled';
+        ticket.status = 'rejected'; // Match with accept/reject terminology
         await ticket.save();
 
         console.log(`[EMAIL] Notifying participant about payment rejection for Ticket ID: ${ticket.ticketId}`);
 
         res.json({ message: 'Order rejected', ticket });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+/*
+ * @desc    Accept Registration (Organizer)
+ * @route   PUT /api/tickets/:id/accept
+ * @access  Private/Organizer
+ */
+const acceptRegistration = async (req, res) => {
+    try {
+        const ticket = await Ticket.findById(req.params.id).populate('eventId');
+        if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+
+        const event = ticket.eventId;
+        if (event.organizer.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        if (ticket.status === 'registered' || ticket.status === 'Successful' || ticket.status === 'attended') {
+            return res.status(400).json({ message: 'Registration already accepted' });
+        }
+
+        // Handle merchandise stock if it's a merch event
+        if (event.type === 'merchandise') {
+            if (event.merchandiseStock <= 0) {
+                return res.status(400).json({ message: 'Stock exhausted, cannot accept.' });
+            }
+            event.merchandiseStock = Math.max(0, event.merchandiseStock - 1);
+            await event.save();
+        }
+
+        ticket.status = event.type === 'merchandise' || event.registrationFee > 0 ? 'Successful' : 'registered';
+        if (event.registrationFee > 0 || event.type === 'merchandise') {
+            ticket.paymentStatus = 'completed';
+        }
+
+        // Generate QR on approval
+        ticket.qrCodeData = `EVENT:${event._id}-USER:${ticket.participantId}-TKT:${ticket.ticketId}`;
+
+        await ticket.save();
+
+        console.log(`[EMAIL] Sending acceptance confirmation with QR to participant for Ticket ID: ${ticket.ticketId}`);
+
+        res.json({ message: 'Registration accepted successfully', ticket });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+/*
+ * @desc    Reject Registration (Organizer)
+ * @route   PUT /api/tickets/:id/reject
+ * @access  Private/Organizer
+ */
+const rejectRegistration = async (req, res) => {
+    try {
+        const ticket = await Ticket.findById(req.params.id).populate('eventId');
+        if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+
+        const event = ticket.eventId;
+        if (event.organizer.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        ticket.status = 'rejected';
+        if (event.registrationFee > 0 || event.type === 'merchandise') {
+            ticket.paymentStatus = 'rejected';
+        }
+        await ticket.save();
+
+        console.log(`[EMAIL] Notifying participant about registration rejection for Ticket ID: ${ticket.ticketId}`);
+
+        res.json({ message: 'Registration rejected', ticket });
 
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -538,6 +613,8 @@ module.exports = {
     uploadPaymentProof,
     approveOrder,
     rejectOrder,
+    acceptRegistration,
+    rejectRegistration,
     scanTicket,
     getPendingVerifications,
     exportAttendanceCSV,

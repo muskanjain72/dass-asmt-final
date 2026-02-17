@@ -52,7 +52,7 @@ const ParticipantDashboard = () => {
             case 'Completed':
                 return isCompleted;
             case 'Cancelled/Rejected':
-                return isCancelled;
+                return isCancelled || t.status === 'rejected';
             default:
                 return true;
         }

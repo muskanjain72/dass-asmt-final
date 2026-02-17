@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Forum from '../components/Forum';
 import AddToCalendarButton from '../components/AddToCalendarButton';
 import toast from 'react-hot-toast';
+import RegistrationModal from '../components/RegistrationModal';
 
 const EventDetails = () => {
     const { id } = useParams();
@@ -15,6 +16,7 @@ const EventDetails = () => {
     const [registering, setRegistering] = useState(false);
     const [isRegistered, setIsRegistered] = useState(false);
     const [activeTab, setActiveTab] = useState('details');
+    const [showRegModal, setShowRegModal] = useState(false);
 
     useEffect(() => {
         const fetchEventAndStatus = async () => {
@@ -36,20 +38,28 @@ const EventDetails = () => {
         fetchEventAndStatus();
     }, [id, user]);
 
-    const handleRegister = async () => {
+    const handleRegister = async (formResponses = {}) => {
         if (!user) {
             navigate('/login');
             return;
         }
+
+        // If modal is not open and event has schema, open it
+        if (!showRegModal && event.formSchema && event.formSchema.length > 0) {
+            setShowRegModal(true);
+            return;
+        }
+
         setRegistering(true);
 
         try {
             await api.post('/tickets', {
                 eventId: id,
-                formResponses: {},
+                formResponses: formResponses,
                 purchaseData: { quantity: 1 }
             });
-            toast.success('Registration successful! Check your dashboard.');
+            toast.success('Registration request sent! Awaiting organizer review.');
+            setShowRegModal(false);
             setTimeout(() => navigate('/dashboard'), 2000);
         } catch (error) {
             toast.error(error.response?.data?.message || 'Registration failed');
@@ -184,6 +194,15 @@ const EventDetails = () => {
                 </div>
 
             </div>
+
+            {showRegModal && (
+                <RegistrationModal
+                    event={event}
+                    onClose={() => setShowRegModal(false)}
+                    onSubmit={handleRegister}
+                    submitting={registering}
+                />
+            )}
         </div>
     );
 };

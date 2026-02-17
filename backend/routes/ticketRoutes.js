@@ -13,7 +13,9 @@ const {
     exportAttendanceCSV,
     checkRegistration,
     exportTicketsICS,
-    getCalendarLinks
+    getCalendarLinks,
+    acceptRegistration,
+    rejectRegistration
 } = require('../controllers/ticketController');
 const { protect, organizer, participant } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -31,8 +33,9 @@ router.get('/event/:eventId', protect, organizer, getEventParticipants);
 
 // Payment Verification Routes
 router.post('/:id/payment-proof', protect, upload.single('paymentProof'), uploadPaymentProof);
-router.put('/:id/approve', protect, organizer, approveOrder);
-router.put('/:id/reject', protect, organizer, rejectOrder);
+// Registration Approval Routes
+router.put('/:id/accept', protect, organizer, acceptRegistration);
+router.put('/:id/reject', protect, organizer, rejectRegistration);
 
 // Attendance Routes
 router.post('/scan', protect, organizer, scanTicket);
