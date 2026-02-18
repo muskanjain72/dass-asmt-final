@@ -3,6 +3,8 @@ const Event = require('../models/Event');
 const User = require('../models/User');
 const crypto = require('crypto');
 const ics = require('ics');
+const QRCode = require('qrcode');
+const cloudinary = require('../config/cloudinary');
 const sendEmail = require('../utils/sendEmail');
 
 // Generate unique Ticket ID
@@ -84,14 +86,16 @@ const registerForEvent = async (req, res) => {
         const isMerch = event.type === 'merchandise';
 
         // 6. Create Ticket
+        // Merch orders start as 'pending_payment' — participant must upload proof
+        // Normal paid events start as 'pending' — organizer reviews form responses
         const ticketId = generateTicketId();
         const newTicket = new Ticket({
             ticketId: ticketId,
             participantId: userId,
             eventId: eventId,
-            status: isMerch ? 'Approved' : 'pending', // Use 'Approved' for consistency with other parts of the app
-            qrCodeData: isMerch ? ticketId : '',
-            paymentStatus: isMerch ? 'completed' : (isPaid ? 'pending' : 'free'),
+            status: isMerch ? 'pending_payment' : 'pending',
+            qrCodeData: '', // QR only generated on approval
+            paymentStatus: isMerch ? 'pending' : (isPaid ? 'pending' : 'free'),
             responses: formResponses || {},
             purchaseData: {
                 quantity: purchaseData?.quantity || 1,
@@ -100,36 +104,18 @@ const registerForEvent = async (req, res) => {
             }
         });
 
-        // 7. Update counts and stock
-        if (isMerch) {
-            const qty = purchaseData?.quantity || 1;
-            if (event.merchandiseStock !== undefined) {
-                event.merchandiseStock = Math.max(0, event.merchandiseStock - qty);
-            }
-            await event.save();
-        } else if (event.type === 'normal') {
+        // 7. Update counts — stock is only decremented on payment approval for merch
+        if (!isMerch && event.type === 'normal') {
             event.registeredCount += 1;
             await event.save();
         }
 
         await newTicket.save();
 
-        // 7. Email Workflow
-        if (isMerch) {
-            await sendEmail({
-                email: req.user.email,
-                subject: `Order Confirmation - ${event.name}`,
-                message: `
-                    <h1>Thank you for your purchase!</h1>
-                    <p>Your order for <strong>${event.name}</strong> has been confirmed.</p>
-                    <p><strong>Ticket ID:</strong> ${newTicket.ticketId}</p>
-                    <p>You can find your ticket and QR code in your dashboard.</p>
-                `
-            });
-        }
-
         res.status(201).json({
-            message: isMerch ? 'Purchase successful!' : 'Registration submitted! Awaiting organizer approval.',
+            message: isMerch
+                ? 'Order placed! Please upload your payment proof to complete the purchase.'
+                : 'Registration submitted! Awaiting organizer approval.',
             ticket: newTicket
         });
 
@@ -242,19 +228,47 @@ const getEventParticipants = async (req, res) => {
  */
 const uploadPaymentProof = async (req, res) => {
     try {
-        const ticket = await Ticket.findById(req.params.id);
+        const ticket = await Ticket.findById(req.params.id).populate('eventId');
 
         if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
         if (ticket.participantId.toString() !== req.user._id.toString()) {
             return res.status(401).json({ message: 'Not authorized' });
         }
         if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+        if (ticket.paymentStatus === 'completed') {
+            return res.status(400).json({ message: 'Order already approved' });
+        }
 
-        ticket.paymentProof = `/uploads/${req.file.filename}`;
+        // Upload to Cloudinary
+        const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        const uploadResponse = await cloudinary.uploader.upload(fileBase64, {
+            folder: 'payment_proofs',
+        });
+
+        ticket.paymentProof = uploadResponse.secure_url;
         ticket.paymentStatus = 'pending_approval';
+        ticket.status = 'pending_payment';
         await ticket.save();
 
-        res.json({ message: 'Payment proof uploaded, awaiting approval', ticket });
+        // Notify organizer (optional — non-blocking)
+        try {
+            const event = ticket.eventId;
+            const organizer = await User.findById(event.organizer);
+            if (organizer) {
+                await sendEmail({
+                    email: organizer.email,
+                    subject: `Payment Proof Submitted — ${event.name}`,
+                    message: `
+                        <h2>New Payment Proof Submitted</h2>
+                        <p>A participant has uploaded payment proof for <strong>${event.name}</strong>.</p>
+                        <p><strong>Ticket ID:</strong> ${ticket.ticketId}</p>
+                        <p>Please log in to your dashboard to review and approve or reject the payment.</p>
+                    `
+                });
+            }
+        } catch (_) { /* non-critical */ }
+
+        res.json({ message: 'Payment proof uploaded! Awaiting organizer approval.', ticket });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -279,35 +293,157 @@ const approveOrder = async (req, res) => {
             return res.status(400).json({ message: 'Order already approved' });
         }
 
-        // Decrement Stock ATOMICALLY for merchandise
+        // Decrement stock for merchandise
         if (event.type === 'merchandise') {
             if (event.merchandiseStock <= 0) {
                 return res.status(400).json({ message: 'Stock exhausted, cannot approve.' });
             }
-            event.merchandiseStock = Math.max(0, event.merchandiseStock - 1);
+            event.merchandiseStock = Math.max(0, event.merchandiseStock - (ticket.purchaseData?.quantity || 1));
             await event.save();
         }
 
         ticket.paymentStatus = 'completed';
         ticket.status = 'Approved';
-        // Generate QR on approval
-        ticket.qrCodeData = ticket.ticketId;
-
+        ticket.qrCodeData = ticket.ticketId; // QR payload = ticketId
         await ticket.save();
 
-        // Send confirmation email
+        // Generate QR code as PNG buffer for email attachment
         const participant = await User.findById(ticket.participantId);
         if (participant) {
-            await sendEmail({
-                email: participant.email,
-                subject: `Registration Approved - ${event.name}`,
-                message: `
-                    <h1>Registration Approved!</h1>
-                    <p>Congratulations, your registration for <strong>${event.name}</strong> has been approved.</p>
-                    <p><strong>Ticket ID:</strong> ${ticket.ticketId}</p>
-                    <p>Your QR code and ticket details are now available in your dashboard.</p>
-                `
-            });
+            try {
+                const qrBuffer = await QRCode.toBuffer(ticket.ticketId, {
+                    type: 'png',
+                    width: 300,
+                    margin: 2,
+                    color: { dark: '#1a1a2e', light: '#ffffff' }
+                });
+
+                // Build variant summary string
+                const variantSummary = ticket.purchaseData?.variants
+                    ? Object.entries(Object.fromEntries(ticket.purchaseData.variants || new Map()))
+                        .map(([k, v]) => `${k}: ${v}`).join(', ')
+                    : (ticket.purchaseData?.variant || '');
+
+                // QR as base64 data URL for embedding in the standalone ticket HTML
+                const qrDataUrl = `data:image/png;base64,${qrBuffer.toString('base64')}`;
+
+                // ── Email body HTML (inline QR via cid) ──────────────────────
+                const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Ticket - ${event.name}</title></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f9fafb">
+  <div style="background:linear-gradient(135deg,#6d28d9,#7c3aed);padding:32px;border-radius:20px 20px 0 0;text-align:center">
+    <h1 style="color:white;margin:0;font-size:1.8rem">🎟 Order Confirmed!</h1>
+    <p style="color:#e9d5ff;margin:8px 0 0">Your payment has been approved</p>
+  </div>
+  <div style="background:white;padding:32px;border-radius:0 0 20px 20px;border:1px solid #e5e7eb">
+    <h2 style="color:#111827;margin:0 0 4px">${event.name}</h2>
+    <p style="color:#6b7280;margin:0 0 24px;font-size:0.9rem">${event.description || ''}</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Ticket ID</td><td style="padding:8px 0;font-weight:bold;color:#111827;font-family:monospace">${ticket.ticketId}</td></tr>
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Name</td><td style="padding:8px 0;font-weight:bold;color:#111827">${participant.firstName} ${participant.lastName}</td></tr>
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Email</td><td style="padding:8px 0;color:#111827">${participant.email}</td></tr>
+      ${ticket.purchaseData?.quantity ? `<tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Quantity</td><td style="padding:8px 0;color:#111827">${ticket.purchaseData.quantity}</td></tr>` : ''}
+      ${variantSummary ? `<tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Variants</td><td style="padding:8px 0;color:#111827">${variantSummary}</td></tr>` : ''}
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Amount</td><td style="padding:8px 0;font-weight:bold;color:#6d28d9">₹${event.registrationFee || 0}</td></tr>
+    </table>
+    <div style="text-align:center;padding:20px;background:#f5f3ff;border-radius:12px;border:2px dashed #c4b5fd">
+      <p style="color:#6d28d9;font-weight:bold;margin:0 0 12px;font-size:0.85rem">SCAN QR CODE AT PICKUP</p>
+      <img src="cid:qrcode" alt="QR Code" style="width:200px;height:200px" />
+      <p style="color:#9ca3af;font-size:0.75rem;margin:12px 0 0">Ticket ID: ${ticket.ticketId}</p>
+    </div>
+    <p style="color:#6b7280;font-size:0.8rem;margin-top:24px;text-align:center">📎 Your QR code and ticket are also attached to this email as downloadable files.</p>
+    <p style="color:#6b7280;font-size:0.8rem;text-align:center">You can also download your ticket from your dashboard.</p>
+  </div>
+</body>
+</html>`;
+
+                // ── Standalone ticket HTML (self-contained, QR embedded as base64) ──
+                const ticketHtmlAttachment = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Ticket — ${event.name}</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; }
+    .ticket { max-width: 520px; margin: 0 auto; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 32px rgba(109,40,217,0.15); }
+    .header { background: linear-gradient(135deg,#6d28d9,#7c3aed); padding: 32px; text-align: center; }
+    .header h1 { color: white; margin: 0; font-size: 1.6rem; }
+    .header p { color: #e9d5ff; margin: 8px 0 0; font-size: 0.9rem; }
+    .body { background: white; padding: 32px; }
+    .body h2 { color: #111827; margin: 0 0 4px; font-size: 1.3rem; }
+    .body .sub { color: #6b7280; font-size: 0.85rem; margin: 0 0 24px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    td { padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 0.9rem; }
+    td:first-child { color: #9ca3af; font-weight: bold; text-transform: uppercase; font-size: 0.75rem; width: 40%; }
+    td:last-child { color: #111827; font-weight: 600; }
+    .qr-box { text-align: center; padding: 24px; background: #f5f3ff; border-radius: 16px; border: 2px dashed #c4b5fd; }
+    .qr-box p { color: #6d28d9; font-weight: bold; margin: 0 0 16px; font-size: 0.85rem; letter-spacing: 1px; }
+    .qr-box img { width: 200px; height: 200px; }
+    .qr-box .tid { color: #9ca3af; font-size: 0.75rem; margin: 12px 0 0; font-family: monospace; }
+    .footer { background: #f9fafb; padding: 16px 32px; text-align: center; font-size: 0.75rem; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="ticket">
+    <div class="header">
+      <h1>🎟 Order Confirmed!</h1>
+      <p>Your payment has been approved</p>
+    </div>
+    <div class="body">
+      <h2>${event.name}</h2>
+      <p class="sub">${event.description || ''}</p>
+      <table>
+        <tr><td>Ticket ID</td><td style="font-family:monospace">${ticket.ticketId}</td></tr>
+        <tr><td>Name</td><td>${participant.firstName} ${participant.lastName}</td></tr>
+        <tr><td>Email</td><td>${participant.email}</td></tr>
+        ${ticket.purchaseData?.quantity ? `<tr><td>Quantity</td><td>${ticket.purchaseData.quantity}</td></tr>` : ''}
+        ${variantSummary ? `<tr><td>Variants</td><td>${variantSummary}</td></tr>` : ''}
+        <tr><td>Amount Paid</td><td style="color:#6d28d9;font-weight:bold">₹${event.registrationFee || 0}</td></tr>
+        <tr><td>Status</td><td style="color:#059669;font-weight:bold">✓ Approved</td></tr>
+      </table>
+      <div class="qr-box">
+        <p>SCAN QR CODE AT PICKUP</p>
+        <img src="${qrDataUrl}" alt="QR Code" />
+        <p class="tid">Ticket ID: ${ticket.ticketId}</p>
+      </div>
+    </div>
+    <div class="footer">Present this ticket at the pickup counter • Generated by Evently</div>
+  </div>
+</body>
+</html>`;
+
+                await sendEmail({
+                    email: participant.email,
+                    subject: `✅ Order Approved — ${event.name}`,
+                    message: emailHtml,
+                    attachments: [
+                        {
+                            // Inline QR for email body display
+                            filename: `qr-${ticket.ticketId}.png`,
+                            content: qrBuffer,
+                            contentType: 'image/png',
+                            cid: 'qrcode'
+                        },
+                        {
+                            // Downloadable QR PNG attachment
+                            filename: `qr-code-${ticket.ticketId}.png`,
+                            content: qrBuffer,
+                            contentType: 'image/png'
+                        },
+                        {
+                            // Downloadable self-contained ticket HTML
+                            filename: `ticket-${ticket.ticketId}.html`,
+                            content: Buffer.from(ticketHtmlAttachment, 'utf-8'),
+                            contentType: 'text/html'
+                        }
+                    ]
+                });
+            } catch (emailErr) {
+                console.error('Email send error (non-critical):', emailErr.message);
+            }
         }
 
         res.json({ message: 'Order approved successfully', ticket });
@@ -332,19 +468,27 @@ const rejectOrder = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
+        if (ticket.paymentStatus === 'completed') {
+            return res.status(400).json({ message: 'Cannot reject an already approved order' });
+        }
+
         ticket.paymentStatus = 'rejected';
         ticket.status = 'Rejected';
+        ticket.qrCodeData = ''; // Ensure no QR on rejection
         await ticket.save();
 
         const participant = await User.findById(ticket.participantId);
         if (participant) {
             await sendEmail({
                 email: participant.email,
-                subject: `Registration Update - ${event.name}`,
+                subject: `❌ Payment Rejected — ${event.name}`,
                 message: `
-                    <h1>Registration Status Update</h1>
-                    <p>We regret to inform you that your registration for <strong>${event.name}</strong> has being rejected.</p>
-                    <p>Please contact the organizer for further details.</p>
+                    <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px">
+                        <h2 style="color:#dc2626">Payment Proof Rejected</h2>
+                        <p>Unfortunately, your payment proof for <strong>${event.name}</strong> was not accepted.</p>
+                        <p><strong>Ticket ID:</strong> ${ticket.ticketId}</p>
+                        <p>Please contact the organizer for more details or re-submit a valid payment proof.</p>
+                    </div>
                 `
             });
         }

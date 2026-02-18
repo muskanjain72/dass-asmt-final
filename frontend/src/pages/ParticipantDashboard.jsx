@@ -1,8 +1,127 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { Link } from 'react-router-dom';
 import TicketModal from '../components/TicketModal';
 import { downloadICS } from '../utils/calendar';
+import QRCode from 'qrcode';
+
+// ─── Download Ticket as PNG ────────────────────────────────────────────────────
+const downloadTicketPNG = async (ticket) => {
+    const event = ticket.eventId;
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 320;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#f5f3ff';
+    ctx.roundRect(0, 0, 600, 320, 20);
+    ctx.fill();
+
+    // Purple header strip
+    ctx.fillStyle = '#6d28d9';
+    ctx.roundRect(0, 0, 600, 80, [20, 20, 0, 0]);
+    ctx.fill();
+
+    // Event name
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 22px Arial';
+    ctx.fillText(event?.name || 'Event', 24, 36);
+    ctx.font = '13px Arial';
+    ctx.fillStyle = '#e9d5ff';
+    ctx.fillText(`Ticket ID: ${ticket.ticketId}`, 24, 60);
+
+    // Details
+    ctx.fillStyle = '#374151';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText('Status: Approved ✓', 24, 110);
+    ctx.fillText(`Qty: ${ticket.purchaseData?.quantity || 1}`, 24, 135);
+    if (ticket.purchaseData?.variant) ctx.fillText(`Variant: ${ticket.purchaseData.variant}`, 24, 160);
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '12px Arial';
+    ctx.fillText('Present this QR at pickup', 24, 290);
+
+    // QR Code
+    try {
+        const qrDataUrl = await QRCode.toDataURL(ticket.ticketId, { width: 180, margin: 1 });
+        const img = new Image();
+        img.src = qrDataUrl;
+        await new Promise(r => { img.onload = r; });
+        ctx.drawImage(img, 390, 90, 180, 180);
+    } catch (_) { }
+
+    const link = document.createElement('a');
+    link.download = `ticket-${ticket.ticketId}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+};
+
+// ─── Payment Proof Uploader ────────────────────────────────────────────────────
+const PaymentProofUploader = ({ ticket, onUploaded }) => {
+    const [file, setFile] = useState(null);
+    const [preview, setPreview] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const [done, setDone] = useState(false);
+    const inputRef = useRef();
+
+    const handleFile = (f) => {
+        if (!f) return;
+        setFile(f);
+        setPreview(URL.createObjectURL(f));
+    };
+
+    const handleUpload = async () => {
+        if (!file) return;
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('paymentProof', file);
+            await api.post(`/tickets/${ticket._id}/payment-proof`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setDone(true);
+            onUploaded();
+        } catch (e) {
+            alert(e.response?.data?.message || 'Upload failed. Please try again.');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    if (done) {
+        return (
+            <div style={{ background: '#ecfdf5', border: '1.5px solid #6ee7b7', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1rem' }}>✅</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#065f46' }}>Proof submitted! Awaiting organizer review.</span>
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ background: '#faf5ff', border: '1.5px dashed #c4b5fd', borderRadius: '12px', padding: '14px' }}>
+            <p style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 10px' }}>Upload Payment Proof</p>
+            {preview ? (
+                <div style={{ position: 'relative', marginBottom: '10px' }}>
+                    <img src={preview} alt="preview" style={{ width: '100%', maxHeight: '120px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e9d5ff' }} />
+                    <button onClick={() => { setFile(null); setPreview(null); }} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: '22px', height: '22px', color: 'white', cursor: 'pointer', fontSize: '12px' }}>✕</button>
+                </div>
+            ) : (
+                <div onClick={() => inputRef.current?.click()} style={{ border: '2px dashed #c4b5fd', borderRadius: '8px', padding: '16px', textAlign: 'center', cursor: 'pointer', background: 'white', marginBottom: '10px' }}>
+                    <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>📎 Click to select screenshot</p>
+                </div>
+            )}
+            <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])} />
+            <div style={{ display: 'flex', gap: '8px' }}>
+                {!preview && <button onClick={() => inputRef.current?.click()} style={{ flex: 1, padding: '8px', background: '#f5f3ff', border: '1.5px solid #c4b5fd', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800, color: '#6d28d9', cursor: 'pointer' }}>Choose File</button>}
+                {preview && (
+                    <button onClick={handleUpload} disabled={uploading} style={{ flex: 1, padding: '8px', background: 'linear-gradient(135deg,#6d28d9,#7c3aed)', border: 'none', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800, color: 'white', cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.7 : 1 }}>
+                        {uploading ? 'Uploading...' : '⬆ Submit Proof'}
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
 
 const ParticipantDashboard = () => {
     const [tickets, setTickets] = useState([]);
@@ -58,19 +177,28 @@ const ParticipantDashboard = () => {
         }
     });
 
-    const getStatusBadgeClass = (status) => {
-        switch (status?.toLowerCase()) {
-            case 'registered':
-            case 'successful':
-            case 'confirmed':
-            case 'approved': return 'badge-green';
-            case 'attended': return 'badge-purple';
-            case 'cancelled':
-            case 'rejected': return 'badge-red';
-            case 'pending':
-            case 'pending_approval': return 'badge-orange';
-            default: return 'badge-gray';
-        }
+    const getStatusBadgeClass = (ticket) => {
+        const s = ticket.status?.toLowerCase();
+        const p = ticket.paymentStatus?.toLowerCase();
+        if (s === 'approved' || s === 'successful' || s === 'registered' || p === 'completed') return 'badge-green';
+        if (s === 'attended') return 'badge-purple';
+        if (s === 'cancelled' || s === 'rejected' || p === 'rejected') return 'badge-red';
+        if (s === 'pending_payment' && p === 'pending_approval') return 'badge-orange';
+        if (s === 'pending_payment' || s === 'pending') return 'badge-orange';
+        return 'badge-gray';
+    };
+
+    const getStatusLabel = (ticket) => {
+        const s = ticket.status;
+        const p = ticket.paymentStatus;
+        if (s === 'Approved' || p === 'completed') return '✓ Approved';
+        if (s === 'pending_payment' && p === 'pending_approval') return '⏳ Proof Submitted';
+        if (s === 'pending_payment') return '📤 Upload Proof';
+        if (s === 'pending') return '⏳ Pending Review';
+        if (s === 'Rejected' || p === 'rejected') return '✕ Rejected';
+        if (s === 'attended') return '✓ Attended';
+        if (s === 'cancelled') return 'Cancelled';
+        return s?.replace('_', ' ') || 'Unknown';
     };
 
     if (loading) return (
@@ -109,40 +237,76 @@ const ParticipantDashboard = () => {
 
                 {upcomingTickets.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {upcomingTickets.map(ticket => (
-                            <div key={ticket._id} className="saas-card flex flex-col justify-between">
-                                <div>
-                                    <div className="flex justify-between items-start mb-4">
-                                        <span className={`badge ${ticket.eventId.type === 'normal' ? 'badge-blue' : 'badge-green'}`}>
-                                            {ticket.eventId.type}
-                                        </span>
-                                        <span className={`badge ${getStatusBadgeClass(ticket.status)}`}>
-                                            {ticket.status}
-                                        </span>
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-1">{ticket.eventId.name}</h3>
-                                    <p className="text-purple-600 text-sm font-medium mb-4">{ticket.eventId.organizer?.organizerName}</p>
+                        {upcomingTickets.map(ticket => {
+                            const isMerch = ticket.eventId?.type === 'merchandise';
+                            const isApproved = ticket.status === 'Approved' || ticket.paymentStatus === 'completed';
+                            const needsProof = isMerch && ticket.paymentStatus === 'pending' && ticket.status === 'pending_payment';
+                            const proofSubmitted = isMerch && ticket.paymentStatus === 'pending_approval';
+                            const isRejected = ticket.status === 'Rejected' || ticket.paymentStatus === 'rejected';
 
-                                    <div className="space-y-3 mb-6">
-                                        <div className="flex items-center text-sm text-gray-500 gap-2">
-                                            <span>{new Date(ticket.eventId.startDate).toLocaleDateString()} at {new Date(ticket.eventId.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            return (
+                                <div key={ticket._id} className="saas-card flex flex-col justify-between" style={{ gap: '12px' }}>
+                                    <div>
+                                        <div className="flex justify-between items-start mb-4">
+                                            <span className={`badge ${isMerch ? 'badge-green' : 'badge-blue'}`}>
+                                                {isMerch ? '🛍 Merch' : '🎟 Event'}
+                                            </span>
+                                            <span className={`badge ${getStatusBadgeClass(ticket)}`}>
+                                                {getStatusLabel(ticket)}
+                                            </span>
                                         </div>
-                                        <div className="flex items-center text-sm text-gray-500 gap-2">
-                                            <span>Main Campus</span>
+                                        <h3 className="text-xl font-bold text-gray-900 mb-1">{ticket.eventId.name}</h3>
+                                        <p className="text-purple-600 text-sm font-medium mb-4">{ticket.eventId.organizer?.organizerName}</p>
+
+                                        <div className="space-y-3 mb-4">
+                                            <div className="flex items-center text-sm text-gray-500 gap-2">
+                                                <span>{new Date(ticket.eventId.startDate).toLocaleDateString()} at {new Date(ticket.eventId.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
                                         </div>
+
+                                        {/* Merch: upload proof if needed */}
+                                        {needsProof && (
+                                            <PaymentProofUploader ticket={ticket} onUploaded={() => {
+                                                setTickets(prev => prev.map(t => t._id === ticket._id ? { ...t, paymentStatus: 'pending_approval', status: 'pending_payment' } : t));
+                                            }} />
+                                        )}
+
+                                        {/* Merch: proof submitted, awaiting review */}
+                                        {proofSubmitted && (
+                                            <div style={{ background: '#fffbeb', border: '1.5px solid #fcd34d', borderRadius: '12px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span>⏳</span>
+                                                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#92400e' }}>Proof submitted — awaiting organizer review</span>
+                                            </div>
+                                        )}
+
+                                        {/* Merch: rejected */}
+                                        {isRejected && (
+                                            <div style={{ background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: '12px', padding: '10px 14px' }}>
+                                                <p style={{ fontSize: '0.78rem', fontWeight: 800, color: '#991b1b', margin: 0 }}>✕ Payment rejected — contact organizer</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-2">
+                                        <button
+                                            onClick={() => setSelectedTicket(ticket)}
+                                            className="text-sm font-bold text-purple-600 hover:text-purple-700 transition-colors"
+                                        >
+                                            View Ticket
+                                        </button>
+                                        {/* Download ticket for approved merch orders */}
+                                        {isMerch && isApproved && (
+                                            <button
+                                                onClick={() => downloadTicketPNG(ticket)}
+                                                style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 800, color: '#6d28d9', background: '#f5f3ff', border: '1.5px solid #c4b5fd', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer' }}
+                                            >
+                                                ⬇ Download Ticket
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-
-                                <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-                                    <button
-                                        onClick={() => setSelectedTicket(ticket)}
-                                        className="text-sm font-bold text-purple-600 hover:text-purple-700 transition-colors"
-                                    >
-                                        View Ticket
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className="saas-card text-center py-12">
@@ -199,8 +363,8 @@ const ParticipantDashboard = () => {
                                         </td>
                                         <td className="text-gray-600">{ticket.eventId?.organizer?.organizerName}</td>
                                         <td>
-                                            <span className={`badge ${getStatusBadgeClass(ticket.status)}`}>
-                                                {ticket.status === 'pending' ? 'Pending Approval' : ticket.status.replace('_', ' ')}
+                                            <span className={`badge ${getStatusBadgeClass(ticket)}`}>
+                                                {getStatusLabel(ticket)}
                                             </span>
                                         </td>
                                         <td className="text-gray-500">{ticket.responses?.teamName || '-'}</td>

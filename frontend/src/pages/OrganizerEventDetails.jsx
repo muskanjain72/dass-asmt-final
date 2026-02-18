@@ -14,6 +14,7 @@ const OrganizerEventDetails = () => {
     const [activeTab, setActiveTab] = useState('overview'); // overview, analytics, participants, registrations, scanner
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [reviewing, setReviewing] = useState(false);
+    const [actionLoading, setActionLoading] = useState(null); // ticketId being actioned
 
     useEffect(() => {
         fetchEventData();
@@ -81,23 +82,29 @@ const OrganizerEventDetails = () => {
         }
     };
 
-    const handleApprovePayment = async (ticketId) => {
-        if (!window.confirm('Are you sure you want to approve this payment? This will decrement stock and generate a QR code.')) return;
+    const handleApprovePayment = async (ticketMongoId) => {
+        if (!window.confirm('Approve this payment? This will decrement stock and generate a QR code for the participant.')) return;
+        setActionLoading(ticketMongoId);
         try {
-            await api.put(`/tickets/${ticketId}/accept`); // Using unified accept endpoint
+            await api.put(`/tickets/${ticketMongoId}/approve`);
             fetchEventData();
         } catch (error) {
             alert(error.response?.data?.message || 'Error approving payment');
+        } finally {
+            setActionLoading(null);
         }
     };
 
-    const handleRejectPayment = async (ticketId) => {
-        if (!window.confirm('Reject this payment proof?')) return;
+    const handleRejectPayment = async (ticketMongoId) => {
+        if (!window.confirm('Reject this payment proof? The participant will be notified by email.')) return;
+        setActionLoading(ticketMongoId);
         try {
-            await api.put(`/tickets/${ticketId}/reject`); // Using unified reject endpoint
+            await api.put(`/tickets/${ticketMongoId}/reject-payment`);
             fetchEventData();
         } catch (error) {
-            console.error("Error rejecting payment", error);
+            alert(error.response?.data?.message || 'Error rejecting payment');
+        } finally {
+            setActionLoading(null);
         }
     };
 
@@ -128,32 +135,22 @@ const OrganizerEventDetails = () => {
         }
     };
 
-    const downloadCSV = () => {
-        if (!participants.length) return;
-        const headers = ['Name', 'Email', 'Registration Date', 'Status', 'Payment', 'Attendance'];
-        const rows = participants.map(p => [
-            `"${p.participantId.firstName} ${p.participantId.lastName}"`,
-            `"${p.participantId.email}"`,
-            `"${new Date(p.createdAt).toLocaleDateString()}"`,
-            `"${p.status}"`,
-            `"${p.paymentStatus}"`,
-            `"${p.status === 'attended' ? 'Present' : 'Absent'}"`
-        ]);
-
-        const csvContent = "data:text/csv;charset=utf-8,"
-            + [headers, ...rows].map(e => e.join(",")).join("\n");
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `participants_${event.name.replace(/\s+/g, '_')}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const getMerchStatusBadge = (ticket) => {
+        const ps = ticket.paymentStatus;
+        const s = ticket.status;
+        if (ps === 'completed' || s === 'Approved') return { label: '✓ Approved', color: '#059669', bg: '#d1fae5', border: '#6ee7b7' };
+        if (ps === 'rejected' || s === 'Rejected') return { label: '✕ Rejected', color: '#dc2626', bg: '#fee2e2', border: '#fca5a5' };
+        if (ps === 'pending_approval') return { label: '⏳ Pending', color: '#d97706', bg: '#fffbeb', border: '#fcd34d' };
+        return { label: '📤 Awaiting Proof', color: '#6b7280', bg: '#f3f4f6', border: '#e5e7eb' };
     };
 
     if (loading) return <div className="text-center py-12"><div className="loader"></div><p style={{ marginTop: '12px', color: '#6b7280' }}>Loading Event Data...</p></div>;
     if (!event) return <div className="text-center py-12" style={{ color: '#dc2626', fontWeight: 'bold' }}>Event not found</div>;
+
+    // Pending counts for badge
+    const pendingMerchCount = participants.filter(p => p.paymentStatus === 'pending_approval').length;
+    const pendingNormalCount = participants.filter(p => p.status === 'pending' && p.paymentStatus !== 'pending_approval').length;
+    const totalPendingCount = pendingMerchCount + pendingNormalCount;
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -198,24 +195,33 @@ const OrganizerEventDetails = () => {
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         style={{
-                            padding: '12px 4px',
+                            paddingBottom: '16px',
+                            paddingTop: '8px',
                             background: 'none',
                             border: 'none',
-                            borderBottom: activeTab === tab ? '3px solid #6d28d9' : '3px solid transparent',
-                            color: activeTab === tab ? '#6d28d9' : '#6b7280',
-                            fontWeight: 'bold',
-                            fontSize: '0.95rem',
                             cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: activeTab === tab ? '700' : '500',
+                            color: activeTab === tab ? '#7c3aed' : '#6b7280',
+                            borderBottom: activeTab === tab ? '2px solid #7c3aed' : '2px solid transparent',
                             textTransform: 'capitalize',
-                            transition: 'all 0.2s'
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            whiteSpace: 'nowrap',
                         }}
                     >
                         {tab === 'registrations' ? 'Pending Reviews' : tab}
+                        {tab === 'registrations' && totalPendingCount > 0 && (
+                            <span style={{ background: '#ef4444', color: 'white', borderRadius: '9999px', fontSize: '0.65rem', fontWeight: 800, padding: '1px 6px', lineHeight: '1.4' }}>{totalPendingCount}</span>
+                        )}
                     </button>
                 ))}
             </div>
 
             <div className="saas-card" style={{ padding: '0', overflow: 'hidden' }}>
+
+                {/* ─── OVERVIEW TAB ─────────────────────────────────────────── */}
                 {activeTab === 'overview' && (
                     <div style={{ padding: '32px' }}>
                         <h3 className="section-title">Event Overview</h3>
@@ -297,6 +303,7 @@ const OrganizerEventDetails = () => {
                     </div>
                 )}
 
+                {/* ─── ANALYTICS TAB ────────────────────────────────────────── */}
                 {activeTab === 'analytics' && stats && (
                     <div style={{ padding: '32px' }}>
                         <h3 className="section-title">Deep-Dive Analytics</h3>
@@ -325,6 +332,7 @@ const OrganizerEventDetails = () => {
                     </div>
                 )}
 
+                {/* ─── PARTICIPANTS TAB ──────────────────────────────────────── */}
                 {activeTab === 'participants' && (
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 32px', borderBottom: '1px solid #f3f4f6' }}>
@@ -411,7 +419,7 @@ const OrganizerEventDetails = () => {
                                     ))}
                                     {filteredParticipants.length === 0 && (
                                         <tr>
-                                            <td colSpan="6" style={{ padding: '64px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
+                                            <td colSpan="7" style={{ padding: '64px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
                                                 {searchQuery ? 'No participants match your search.' : 'No registrations yet.'}
                                             </td>
                                         </tr>
@@ -422,78 +430,242 @@ const OrganizerEventDetails = () => {
                     </div>
                 )}
 
-                {activeTab === 'registrations' && (
-                    <div style={{ padding: '32px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h3 className="section-title" style={{ margin: 0 }}>Pending Registrations</h3>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <span className="badge badge-orange">
-                                    {participants.filter(p => p.status === 'pending').length} Needs Review
-                                </span>
-                            </div>
-                        </div>
+                {/* ─── PENDING REVIEWS TAB ──────────────────────────────────── */}
+                {activeTab === 'registrations' && (() => {
+                    // All merch orders (pending, approved, rejected) for reference
+                    const allMerchOrders = participants.filter(p => p.eventId?.type === 'merchandise' || event.type === 'merchandise'
+                        ? (p.paymentStatus === 'pending_approval' || p.paymentStatus === 'completed' || p.paymentStatus === 'rejected' || p.status === 'Approved' || p.status === 'Rejected')
+                        : false
+                    );
+                    // For non-merch events, show all merch-like orders
+                    const merchOrders = event.type === 'merchandise'
+                        ? participants.filter(p => p.paymentStatus === 'pending_approval' || p.paymentStatus === 'completed' || p.paymentStatus === 'rejected' || p.status === 'Approved' || p.status === 'Rejected' || p.status === 'pending_payment')
+                        : [];
 
-                        <div className="saas-table-container">
-                            <table className="saas-table">
-                                <thead>
-                                    <tr>
-                                        <th>Participant</th>
-                                        <th>Ticket ID</th>
-                                        <th>Reg. Date</th>
-                                        <th>Form Responses</th>
-                                        <th style={{ textAlign: 'right' }}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {participants.filter(p => p.status === 'pending').map((ticket) => (
-                                        <tr key={ticket._id}>
-                                            <td>
-                                                <p style={{ fontWeight: 'bold', margin: 0 }}>{ticket.participantId.firstName} {ticket.participantId.lastName}</p>
-                                                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>{ticket.participantId.email}</p>
-                                            </td>
-                                            <td style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>#{ticket.ticketId.slice(0, 8)}</td>
-                                            <td style={{ fontSize: '0.85rem' }}>{new Date(ticket.createdAt).toLocaleDateString()}</td>
-                                            <td>
-                                                <button
-                                                    onClick={() => { setSelectedTicket(ticket); setReviewing(true); }}
-                                                    className="text-purple-600 font-bold hover:underline py-1 px-3 rounded-lg bg-purple-50"
-                                                    style={{ fontSize: '0.8rem' }}
-                                                >
-                                                    View Responses
-                                                </button>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                                    <button
-                                                        onClick={() => handleAcceptRegistration(ticket._id)}
-                                                        className="btn-primary"
-                                                        style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: '#10b981' }}
-                                                    >
-                                                        Accept
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleRejectRegistration(ticket._id)}
-                                                        className="btn-outline"
-                                                        style={{ padding: '6px 12px', fontSize: '0.8rem', borderColor: '#ef4444', color: '#ef4444' }}
-                                                    >
-                                                        Reject
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {participants.filter(p => p.status === 'pending').length === 0 && (
-                                        <tr>
-                                            <td colSpan="5" style={{ padding: '48px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
-                                                No pending registrations to review.
-                                            </td>
-                                        </tr>
+                    const normalPending = participants.filter(p => p.status === 'pending' && p.paymentStatus !== 'pending_approval' && event.type !== 'merchandise');
+                    const pendingMerch = merchOrders.filter(p => p.paymentStatus === 'pending_approval');
+
+                    return (
+                        <div style={{ padding: '32px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                <h3 className="section-title" style={{ margin: 0 }}>Pending Reviews</h3>
+                                <span className="badge badge-orange">{totalPendingCount} Needs Review</span>
+                            </div>
+
+                            {/* ── Merch Payment Proofs ─────────────────────────────── */}
+                            {event.type === 'merchandise' && (
+                                <div style={{ marginBottom: '36px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                                        <span style={{ fontSize: '1rem' }}>🛍</span>
+                                        <h4 style={{ margin: 0, fontWeight: 800, color: '#374151', fontSize: '1rem' }}>Merchandise Orders</h4>
+                                        {pendingMerch.length > 0 && (
+                                            <span className="badge badge-orange" style={{ fontSize: '0.7rem' }}>{pendingMerch.length} pending</span>
+                                        )}
+                                    </div>
+
+                                    {merchOrders.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '48px 0', color: '#9ca3af' }}>
+                                            <p style={{ fontSize: '2rem', marginBottom: '8px' }}>📦</p>
+                                            <p style={{ fontWeight: 700, color: '#6b7280' }}>No orders yet</p>
+                                            <p style={{ fontSize: '0.85rem' }}>Orders will appear here once participants place them.</p>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                                            {merchOrders.map(ticket => {
+                                                const badge = getMerchStatusBadge(ticket);
+                                                const isPending = ticket.paymentStatus === 'pending_approval';
+                                                const isApproved = ticket.paymentStatus === 'completed' || ticket.status === 'Approved';
+                                                const isRejected = ticket.paymentStatus === 'rejected' || ticket.status === 'Rejected';
+                                                const isActioning = actionLoading === ticket._id;
+
+                                                return (
+                                                    <div key={ticket._id} style={{
+                                                        background: 'white',
+                                                        border: `1.5px solid ${badge.border}`,
+                                                        borderRadius: '16px',
+                                                        overflow: 'hidden',
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                                        opacity: isActioning ? 0.7 : 1,
+                                                        transition: 'opacity 0.2s'
+                                                    }}>
+                                                        {/* Payment Proof Image */}
+                                                        {ticket.paymentProof ? (
+                                                            <div style={{ position: 'relative', background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                                                                <img
+                                                                    src={ticket.paymentProof}
+                                                                    alt="Payment Proof"
+                                                                    style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', display: 'block' }}
+                                                                />
+                                                                <a
+                                                                    href={ticket.paymentProof}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', color: 'white', borderRadius: '8px', padding: '4px 10px', fontSize: '0.7rem', fontWeight: 800, textDecoration: 'none' }}
+                                                                >
+                                                                    🔍 Full View
+                                                                </a>
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ height: '100px', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #e5e7eb' }}>
+                                                                <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0 }}>📤 No proof uploaded yet</p>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Ticket Details */}
+                                                        <div style={{ padding: '16px' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                                                                <div>
+                                                                    <p style={{ fontWeight: 800, margin: '0 0 2px', color: '#111827' }}>{ticket.participantId.firstName} {ticket.participantId.lastName}</p>
+                                                                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>{ticket.participantId.email}</p>
+                                                                </div>
+                                                                {/* Status Badge */}
+                                                                <span style={{
+                                                                    background: badge.bg,
+                                                                    color: badge.color,
+                                                                    border: `1px solid ${badge.border}`,
+                                                                    borderRadius: '8px',
+                                                                    padding: '3px 10px',
+                                                                    fontSize: '0.72rem',
+                                                                    fontWeight: 800,
+                                                                    whiteSpace: 'nowrap'
+                                                                }}>
+                                                                    {badge.label}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Purchase details */}
+                                                            <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '8px 12px', marginBottom: '12px', fontSize: '0.78rem', color: '#374151' }}>
+                                                                <span style={{ fontWeight: 700 }}>Qty:</span> {ticket.purchaseData?.quantity || 1}
+                                                                {ticket.purchaseData?.variant && <span style={{ marginLeft: '12px' }}><span style={{ fontWeight: 700 }}>Variant:</span> {ticket.purchaseData.variant}</span>}
+                                                                {ticket.purchaseData?.variants && Object.entries(Object.fromEntries(ticket.purchaseData.variants || new Map())).map(([k, v]) => (
+                                                                    <span key={k} style={{ marginLeft: '12px' }}><span style={{ fontWeight: 700 }}>{k}:</span> {v}</span>
+                                                                ))}
+                                                                <span style={{ marginLeft: '12px', fontWeight: 700 }}>₹{event.registrationFee || 0}</span>
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                                                <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+                                                                    {ticket.paymentProof ? `Submitted ${new Date(ticket.updatedAt).toLocaleDateString()}` : `Ordered ${new Date(ticket.createdAt).toLocaleDateString()}`}
+                                                                </p>
+                                                                <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#9ca3af', background: '#f3f4f6', padding: '2px 8px', borderRadius: '6px' }}>#{ticket.ticketId.slice(0, 8)}</span>
+                                                            </div>
+
+                                                            {/* Action Buttons — only for pending_approval */}
+                                                            {isPending && (
+                                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                                    <button
+                                                                        onClick={() => handleRejectPayment(ticket._id)}
+                                                                        disabled={isActioning}
+                                                                        style={{ flex: 1, padding: '8px', background: 'white', border: '1.5px solid #fca5a5', borderRadius: '10px', color: '#dc2626', fontWeight: 800, fontSize: '0.8rem', cursor: isActioning ? 'not-allowed' : 'pointer' }}
+                                                                    >
+                                                                        {isActioning ? '...' : '✕ Reject'}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleApprovePayment(ticket._id)}
+                                                                        disabled={isActioning}
+                                                                        style={{ flex: 1, padding: '8px', background: 'linear-gradient(135deg,#059669,#10b981)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 800, fontSize: '0.8rem', cursor: isActioning ? 'not-allowed' : 'pointer' }}
+                                                                    >
+                                                                        {isActioning ? '...' : '✓ Approve'}
+                                                                    </button>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Already processed — show info */}
+                                                            {isApproved && (
+                                                                <div style={{ background: '#d1fae5', borderRadius: '8px', padding: '8px 12px', textAlign: 'center', fontSize: '0.78rem', fontWeight: 800, color: '#065f46' }}>
+                                                                    ✓ Order Approved — QR & ticket sent to participant
+                                                                </div>
+                                                            )}
+                                                            {isRejected && (
+                                                                <div style={{ background: '#fee2e2', borderRadius: '8px', padding: '8px 12px', textAlign: 'center', fontSize: '0.78rem', fontWeight: 800, color: '#991b1b' }}>
+                                                                    ✕ Payment Rejected — participant notified
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     )}
-                                </tbody>
-                            </table>
+                                </div>
+                            )}
+
+                            {/* ── Normal Event Registrations ───────────────────────── */}
+                            {normalPending.length > 0 && (
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                                        <span style={{ fontSize: '1rem' }}>🎟</span>
+                                        <h4 style={{ margin: 0, fontWeight: 800, color: '#374151', fontSize: '1rem' }}>Event Registrations</h4>
+                                        <span className="badge badge-orange" style={{ fontSize: '0.7rem' }}>{normalPending.length}</span>
+                                    </div>
+                                    <div className="saas-table-container">
+                                        <table className="saas-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Participant</th>
+                                                    <th>Ticket ID</th>
+                                                    <th>Reg. Date</th>
+                                                    <th>Form Responses</th>
+                                                    <th style={{ textAlign: 'right' }}>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {normalPending.map((ticket) => (
+                                                    <tr key={ticket._id}>
+                                                        <td>
+                                                            <p style={{ fontWeight: 'bold', margin: 0 }}>{ticket.participantId.firstName} {ticket.participantId.lastName}</p>
+                                                            <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>{ticket.participantId.email}</p>
+                                                        </td>
+                                                        <td style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>#{ticket.ticketId.slice(0, 8)}</td>
+                                                        <td style={{ fontSize: '0.85rem' }}>{new Date(ticket.createdAt).toLocaleDateString()}</td>
+                                                        <td>
+                                                            <button
+                                                                onClick={() => { setSelectedTicket(ticket); setReviewing(true); }}
+                                                                className="text-purple-600 font-bold hover:underline py-1 px-3 rounded-lg bg-purple-50"
+                                                                style={{ fontSize: '0.8rem' }}
+                                                            >
+                                                                View Responses
+                                                            </button>
+                                                        </td>
+                                                        <td style={{ textAlign: 'right' }}>
+                                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                                <button
+                                                                    onClick={() => handleAcceptRegistration(ticket._id)}
+                                                                    className="btn-primary"
+                                                                    style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: '#10b981' }}
+                                                                >
+                                                                    Accept
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleRejectRegistration(ticket._id)}
+                                                                    className="btn-outline"
+                                                                    style={{ padding: '6px 12px', fontSize: '0.8rem', borderColor: '#ef4444', color: '#ef4444' }}
+                                                                >
+                                                                    Reject
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* All caught up */}
+                            {totalPendingCount === 0 && event.type !== 'merchandise' && (
+                                <div style={{ textAlign: 'center', padding: '64px 0', color: '#9ca3af' }}>
+                                    <p style={{ fontSize: '2rem', marginBottom: '8px' }}>✅</p>
+                                    <p style={{ fontWeight: 700, color: '#6b7280' }}>All caught up!</p>
+                                    <p style={{ fontSize: '0.85rem' }}>No pending registrations or payment proofs to review.</p>
+                                </div>
+                            )}
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
+
+                {/* ─── SCANNER TAB ──────────────────────────────────────────── */}
                 {activeTab === 'scanner' && (
                     <div style={{ padding: '48px 32px', textAlign: 'center' }}>
                         <div style={{ maxWidth: '400px', margin: '0 auto' }}>
@@ -522,13 +694,13 @@ const OrganizerEventDetails = () => {
                 )}
             </div>
 
-            {/* Review Modal */}
+            {/* ─── Review Modal ──────────────────────────────────────────────── */}
             {reviewing && selectedTicket && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all">
                         <div className="px-6 py-4 bg-purple-600 text-white flex justify-between items-center" style={{ background: 'var(--primary-gradient)' }}>
                             <h2 className="text-xl font-bold">Review Registration</h2>
-                            <button onClick={() => setReviewing(false)} className="text-white hover:text-gray-200">
+                            <button onClick={() => { setReviewing(false); setSelectedTicket(null); }} className="text-white hover:text-gray-200">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -571,7 +743,7 @@ const OrganizerEventDetails = () => {
                                 <div className="space-y-2">
                                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Payment Proof</h4>
                                     <img
-                                        src={`${api.defaults.baseURL.replace('/api', '')}${selectedTicket.paymentProof}`}
+                                        src={selectedTicket.paymentProof}
                                         alt="Payment Proof"
                                         className="w-full rounded-xl border border-gray-200"
                                     />
@@ -599,4 +771,5 @@ const OrganizerEventDetails = () => {
         </div>
     );
 };
+
 export default OrganizerEventDetails;

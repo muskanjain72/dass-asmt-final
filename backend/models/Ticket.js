@@ -22,7 +22,7 @@ const ticketSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'registered', 'Approved', 'Successful', 'attended', 'cancelled', 'completed', 'rejected'],
+        enum: ['pending', 'pending_payment', 'registered', 'Approved', 'Successful', 'attended', 'cancelled', 'completed', 'rejected', 'Rejected'],
         default: 'registered'
     },
     // Store answers to the event's custom form

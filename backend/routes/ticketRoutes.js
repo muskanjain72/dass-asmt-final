@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const {
     registerForEvent,
     getMyTickets,
@@ -18,7 +19,9 @@ const {
     rejectRegistration
 } = require('../controllers/ticketController');
 const { protect, organizer, participant } = require('../middleware/authMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+
+// Memory storage for Cloudinary uploads
+const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 router.post('/', protect, participant, registerForEvent);
 router.get('/my-tickets', protect, participant, getMyTickets);
@@ -31,9 +34,14 @@ router.get('/:id/calendar-links', protect, participant, getCalendarLinks);
 router.get('/organizer/pending', protect, organizer, getPendingVerifications);
 router.get('/event/:eventId', protect, organizer, getEventParticipants);
 
-// Payment Verification Routes
-router.post('/:id/payment-proof', protect, upload.single('paymentProof'), uploadPaymentProof);
-// Registration Approval Routes
+// Payment Proof Upload (participant uploads screenshot)
+router.post('/:id/payment-proof', protect, memUpload.single('paymentProof'), uploadPaymentProof);
+
+// Merch Order Approval / Rejection (organizer)
+router.put('/:id/approve', protect, organizer, approveOrder);
+router.put('/:id/reject-payment', protect, organizer, rejectOrder);
+
+// Normal Event Registration Approval Routes (organizer)
 router.put('/:id/accept', protect, organizer, acceptRegistration);
 router.put('/:id/reject', protect, organizer, rejectRegistration);
 
@@ -42,3 +50,4 @@ router.post('/scan', protect, organizer, scanTicket);
 router.get('/event/:eventId/export', protect, organizer, exportAttendanceCSV);
 
 module.exports = router;
+

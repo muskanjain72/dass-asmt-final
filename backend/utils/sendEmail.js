@@ -3,7 +3,7 @@ const nodemailer = require('nodemailer');
 const sendEmail = async (options) => {
     try {
         const transporter = nodemailer.createTransport({
-            service: 'gmail', // or your preferred service
+            service: 'gmail',
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,
@@ -15,6 +15,8 @@ const sendEmail = async (options) => {
             to: options.email,
             subject: options.subject,
             html: options.message,
+            // Support optional attachments (e.g. QR code image, ticket PDF)
+            attachments: options.attachments || [],
         };
 
         const info = await transporter.sendMail(mailOptions);
@@ -22,8 +24,6 @@ const sendEmail = async (options) => {
         return info;
     } catch (error) {
         console.error('Error sending email:', error);
-        // We don't want to crash the request if email fails, 
-        // but it's good to log it.
         return null;
     }
 };
