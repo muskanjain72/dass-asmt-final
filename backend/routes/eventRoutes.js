@@ -3,6 +3,7 @@ const router = express.Router();
 const {
     createEvent,
     getEvents,
+    getTrendingEvents,
     getEventById,
     updateEvent,
     getMyEvents,
@@ -12,6 +13,7 @@ const { protect, optionalProtect, organizer } = require('../middleware/authMiddl
 
 // Public routes
 router.get('/', optionalProtect, getEvents);
+router.get('/trending', getTrendingEvents);
 
 // Protected routes (Organizer only)
 router.post('/', protect, organizer, createEvent);
@@ -21,3 +23,4 @@ router.put('/:id', protect, organizer, updateEvent);
 router.get('/:id/stats', protect, organizer, getEventStats);
 
 module.exports = router;
+

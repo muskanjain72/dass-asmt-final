@@ -62,25 +62,12 @@ const createEvent = async (req, res) => {
  * @route   GET /api/events
  * @access  Public
  */
-/*
- * @desc    Get All Events (Public - Browse)
- * @route   GET /api/events
- * @access  Public
- */
 const getEvents = async (req, res) => {
-    // ... existing getEvents code ...
     try {
-        const { keyword, type, startDate, endDate, eligibility, sort, limit, page = 1 } = req.query; // Added page default
+        const { keyword, type, startDate, endDate, eligibility, sort, limit } = req.query;
 
         // Build Match Stage (Filtering)
         let matchStage = { status: { $in: ['published', 'ongoing'] } };
-
-        if (keyword) {
-            matchStage.$or = [
-                { name: { $regex: keyword, $options: 'i' } },
-                { description: { $regex: keyword, $options: 'i' } }
-            ];
-        }
 
         if (type) matchStage.type = type;
 
@@ -94,64 +81,60 @@ const getEvents = async (req, res) => {
             matchStage.eligibility = { $in: [eligibility, 'All'] };
         }
 
-        // Trending filter logic: top 5 in last 24h
-        if (sort === 'trending') {
-            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            matchStage.createdAt = { $gte: yesterday };
-        }
-
         // Determine user interests for personalization
         const userInterests = req.user?.interests || [];
 
-        // Aggregation Pipeline
+        // Aggregation Pipeline — lookup organizer FIRST so we can search on organizerName
         const pipeline = [
             { $match: matchStage },
-            // Add matchScore based on intersection of event tags and user interests
             {
-                $addFields: {
-                    matchScore: {
-                        $size: {
-                            $setIntersection: ["$tags", userInterests]
-                        }
+                $lookup: {
+                    from: 'users',
+                    localField: 'organizer',
+                    foreignField: '_id',
+                    as: 'organizer'
+                }
+            },
+            { $unwind: { path: '$organizer', preserveNullAndEmptyArrays: true } },
+        ];
+
+        // Fuzzy/Partial keyword search on event name AND organizer name
+        if (keyword) {
+            pipeline.push({
+                $match: {
+                    $or: [
+                        { name: { $regex: keyword, $options: 'i' } },
+                        { description: { $regex: keyword, $options: 'i' } },
+                        { 'organizer.organizerName': { $regex: keyword, $options: 'i' } },
+                        { tags: { $elemMatch: { $regex: keyword, $options: 'i' } } }
+                    ]
+                }
+            });
+        }
+
+        // Add personalization matchScore
+        pipeline.push({
+            $addFields: {
+                matchScore: {
+                    $size: {
+                        $ifNull: [{ $setIntersection: ['$tags', userInterests] }, []]
                     }
                 }
             }
-        ];
+        });
 
         // Sorting
-        let sortStage = {};
         if (sort === 'trending') {
-            sortStage = { registeredCount: -1 };
+            pipeline.push({ $sort: { registeredCount: -1, startDate: 1 } });
         } else {
-            // Default: Prioritize matchScore, then startDate
-            sortStage = { matchScore: -1, startDate: 1 };
+            pipeline.push({ $sort: { matchScore: -1, startDate: 1 } });
         }
-        pipeline.push({ $sort: sortStage });
 
-        // Pagination & Limit
-        // If sorting by trending, we might want a hard limit as per original logic (limit 5)
-        // But let's support general pagination too if needed.
         if (limit) {
             pipeline.push({ $limit: parseInt(limit) });
         }
 
-        // Populate Organizer (Aggregation specific lookups are complex, let's use helper or simple lookup)
-        // $lookup replacement for populate('organizer', 'organizerName')
-        pipeline.push({
-            $lookup: {
-                from: 'users',
-                localField: 'organizer',
-                foreignField: '_id',
-                as: 'organizer'
-            }
-        });
-
-        // Unwind organizer array (lookup returns array) and project only needed fields
-        pipeline.push({
-            $unwind: { path: '$organizer', preserveNullAndEmptyArrays: true }
-        });
-
-        // Project final fields (cleaning up organizer object to match populate behavior)
+        // Project final fields
         pipeline.push({
             $project: {
                 name: 1,
@@ -167,7 +150,7 @@ const getEvents = async (req, res) => {
                 tags: 1,
                 merchandiseStock: 1,
                 registeredCount: 1,
-                matchScore: 1, // Debug purpose or UI
+                matchScore: 1,
                 'organizer._id': 1,
                 'organizer.organizerName': 1
             }
@@ -176,6 +159,50 @@ const getEvents = async (req, res) => {
         const events = await Event.aggregate(pipeline);
         res.json(events);
 
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+/*
+ * @desc    Get Trending Events (Top 5 by registrations in last 24h)
+ * @route   GET /api/events/trending
+ * @access  Public
+ */
+const getTrendingEvents = async (req, res) => {
+    try {
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+        // Count tickets created in the last 24h per event
+        const trendingTickets = await Ticket.aggregate([
+            { $match: { createdAt: { $gte: yesterday }, status: { $nin: ['cancelled', 'rejected'] } } },
+            { $group: { _id: '$eventId', recentRegistrations: { $sum: 1 } } },
+            { $sort: { recentRegistrations: -1 } },
+            { $limit: 5 }
+        ]);
+
+        if (trendingTickets.length === 0) {
+            // Fallback: return top 5 by total registrations
+            const fallback = await Event.find({ status: { $in: ['published', 'ongoing'] } })
+                .sort({ registeredCount: -1 })
+                .limit(5)
+                .populate('organizer', 'organizerName');
+            return res.json(fallback.map(e => ({ ...e.toObject(), recentRegistrations: 0 })));
+        }
+
+        const eventIds = trendingTickets.map(t => t._id);
+        const recentMap = {};
+        trendingTickets.forEach(t => { recentMap[t._id.toString()] = t.recentRegistrations; });
+
+        const events = await Event.find({ _id: { $in: eventIds }, status: { $in: ['published', 'ongoing'] } })
+            .populate('organizer', 'organizerName');
+
+        // Sort by recentRegistrations order
+        const sorted = events
+            .map(e => ({ ...e.toObject(), recentRegistrations: recentMap[e._id.toString()] || 0 }))
+            .sort((a, b) => b.recentRegistrations - a.recentRegistrations);
+
+        res.json(sorted);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -419,8 +446,10 @@ const getEventStats = async (req, res) => {
 module.exports = {
     createEvent,
     getEvents,
+    getTrendingEvents,
     getEventById,
     updateEvent,
     getMyEvents,
     getEventStats
 };
+
