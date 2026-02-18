@@ -9,6 +9,7 @@ import ParticipantDashboard from './pages/ParticipantDashboard';
 import BrowseEvents from './pages/BrowseEvents';
 import EventDetails from './pages/EventDetails';
 import ClubList from './pages/ClubList';
+import OrganizerProfile from './pages/OrganizerProfile';
 import OnboardingPage from './pages/OnboardingPage';
 
 // Organizer & Admin
@@ -62,6 +63,7 @@ function App() {
             <Route path="/events" element={<BrowseEvents />} />
             <Route path="/events/:id" element={<EventDetails />} />
             <Route path="/clubs" element={<ClubList />} />
+            <Route path="/clubs/:id" element={<OrganizerProfile />} />
 
             {/* Protected Routes */}
             <Route
