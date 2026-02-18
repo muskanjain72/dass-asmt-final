@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 
 const AdminDashboard = () => {
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -18,10 +21,17 @@ const AdminDashboard = () => {
     const [requestLoading, setRequestLoading] = useState(false);
 
     useEffect(() => {
+        // Safety check: Ensure only admins can stay on this page
+        if (user && user.role !== 'admin') {
+            alert('Access Denied: You do not have admin privileges.');
+            navigate('/');
+            return;
+        }
+
         const tab = searchParams.get('tab') || 'dashboard';
         setActiveTab(tab);
         if (tab === 'dashboard') setCreatedCredentials(null);
-    }, [searchParams]);
+    }, [searchParams, user, navigate]);
 
     useEffect(() => {
         if (activeTab === 'clubs') {
@@ -80,13 +90,19 @@ const AdminDashboard = () => {
             alert('Error deleting organizer');
         }
     };
-
     const handleToggleStatus = async (id) => {
         try {
             await api.put(`/admin/organizers/${id}/status`);
             fetchOrganizers();
         } catch (error) {
-            alert('Error updating status');
+            const msg = error.response?.data?.message || 'Error updating status';
+            if (error.response?.status === 403 && msg.includes('role organizer')) {
+                alert('Session Mismatch: You appear to be logged in as an Organizer. Please log back in as Admin.');
+                logout();
+                navigate('/login');
+            } else {
+                alert(msg);
+            }
         }
     };
 

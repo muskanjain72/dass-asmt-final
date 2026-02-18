@@ -69,6 +69,11 @@ const loginUser = async (req, res) => {
         const user = await User.findOne({ email });
 
         if (user && (await user.matchPassword(password))) {
+            // Check if account is active (Specifically for Organizers)
+            if (user.role === 'organizer' && user.isActive === false) {
+                return res.status(403).json({ message: 'Your organizational account has been disabled or archived. Please contact administration.' });
+            }
+
             const userData = {
                 _id: user._id,
                 email: user.email,
