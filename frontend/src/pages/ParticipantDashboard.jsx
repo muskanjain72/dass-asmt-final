@@ -9,52 +9,126 @@ import QRCode from 'qrcode';
 const downloadTicketPNG = async (ticket) => {
     const event = ticket.eventId;
     const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 320;
+    const W = 700, H = 420;
+    canvas.width = W;
+    canvas.height = H;
     const ctx = canvas.getContext('2d');
 
-    // Background
+    // ── Background ──────────────────────────────────────────────────────────────
     ctx.fillStyle = '#f5f3ff';
-    ctx.roundRect(0, 0, 600, 320, 20);
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, H, 20);
     ctx.fill();
 
-    // Purple header strip
+    // ── Purple header strip ──────────────────────────────────────────────────────
     ctx.fillStyle = '#6d28d9';
-    ctx.roundRect(0, 0, 600, 80, [20, 20, 0, 0]);
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, 90, [20, 20, 0, 0]);
     ctx.fill();
 
-    // Event name
+    // ── Subtle gradient overlay on header ───────────────────────────────────────
+    const grad = ctx.createLinearGradient(0, 0, W, 0);
+    grad.addColorStop(0, 'rgba(109,40,217,0)');
+    grad.addColorStop(1, 'rgba(124,58,237,0.6)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, 90, [20, 20, 0, 0]);
+    ctx.fill();
+
+    // ── Header text ─────────────────────────────────────────────────────────────
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 22px Arial';
-    ctx.fillText(event?.name || 'Event', 24, 36);
+    ctx.font = 'bold 26px Arial';
+    ctx.fillText(event?.name || 'Event Ticket', 28, 42);
     ctx.font = '13px Arial';
     ctx.fillStyle = '#e9d5ff';
-    ctx.fillText(`Ticket ID: ${ticket.ticketId}`, 24, 60);
+    ctx.fillText(event?.organizer?.organizerName || '', 28, 66);
 
-    // Details
-    ctx.fillStyle = '#374151';
-    ctx.font = 'bold 14px Arial';
-    ctx.fillText('Status: Approved ✓', 24, 110);
-    ctx.fillText(`Qty: ${ticket.purchaseData?.quantity || 1}`, 24, 135);
-    if (ticket.purchaseData?.variant) ctx.fillText(`Variant: ${ticket.purchaseData.variant}`, 24, 160);
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = '12px Arial';
-    ctx.fillText('Present this QR at pickup', 24, 290);
+    // ── Ticket ID badge ──────────────────────────────────────────────────────────
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.beginPath();
+    ctx.roundRect(W - 200, 20, 172, 50, 10);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 10px Arial';
+    ctx.fillText('TICKET ID', W - 188, 40);
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(ticket.ticketId, W - 188, 58);
 
-    // QR Code
+    // ── Dashed perforation line ──────────────────────────────────────────────────
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = '#c4b5fd';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(28, 110);
+    ctx.lineTo(W - 28, 110);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // ── Left notch circles ───────────────────────────────────────────────────────
+    ctx.fillStyle = '#f5f3ff';
+    ctx.beginPath(); ctx.arc(0, 110, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W, 110, 16, 0, Math.PI * 2); ctx.fill();
+
+    // ── Details section ──────────────────────────────────────────────────────────
+    const labelStyle = () => { ctx.fillStyle = '#9ca3af'; ctx.font = 'bold 10px Arial'; };
+    const valueStyle = () => { ctx.fillStyle = '#111827'; ctx.font = 'bold 14px Arial'; };
+
+    const fields = [
+        ['STATUS', ticket.status === 'Approved' ? '✓ Approved' : ticket.status],
+        ['DATE', event?.startDate ? new Date(event.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'],
+        ['QUANTITY', String(ticket.purchaseData?.quantity || 1)],
+        ticket.purchaseData?.variant ? ['VARIANT', ticket.purchaseData.variant] : null,
+        ['AMOUNT', `₹${event?.registrationFee || 0}`],
+    ].filter(Boolean);
+
+    let y = 148;
+    fields.forEach(([label, value]) => {
+        labelStyle();
+        ctx.fillText(label, 36, y);
+        valueStyle();
+        ctx.fillText(value, 36, y + 18);
+        y += 52;
+    });
+
+    // ── QR Code ──────────────────────────────────────────────────────────────────
     try {
-        const qrDataUrl = await QRCode.toDataURL(ticket.ticketId, { width: 180, margin: 1 });
+        const qrDataUrl = await QRCode.toDataURL(ticket.ticketId, { width: 200, margin: 1, color: { dark: '#1a1a2e', light: '#ffffff' } });
         const img = new Image();
         img.src = qrDataUrl;
         await new Promise(r => { img.onload = r; });
-        ctx.drawImage(img, 390, 90, 180, 180);
+
+        // QR background card
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.roundRect(W - 240, 120, 212, 260, 16);
+        ctx.fill();
+        ctx.strokeStyle = '#e9d5ff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(W - 240, 120, 212, 260, 16);
+        ctx.stroke();
+
+        ctx.drawImage(img, W - 226, 134, 184, 184);
+
+        ctx.fillStyle = '#6d28d9';
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('SCAN AT PICKUP', W - 134, 338);
+        ctx.textAlign = 'left';
     } catch (_) { }
 
+    // ── Footer ───────────────────────────────────────────────────────────────────
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '10px Arial';
+    ctx.fillText('This ticket is non-transferable. Present this QR code at the event.', 36, H - 20);
+
+    // ── Download ─────────────────────────────────────────────────────────────────
     const link = document.createElement('a');
     link.download = `ticket-${ticket.ticketId}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
 };
+
 
 // ─── Payment Proof Uploader ────────────────────────────────────────────────────
 const PaymentProofUploader = ({ ticket, onUploaded }) => {

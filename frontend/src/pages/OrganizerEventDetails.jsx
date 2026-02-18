@@ -666,32 +666,123 @@ const OrganizerEventDetails = () => {
                 })()}
 
                 {/* ─── SCANNER TAB ──────────────────────────────────────────── */}
-                {activeTab === 'scanner' && (
-                    <div style={{ padding: '48px 32px', textAlign: 'center' }}>
-                        <div style={{ maxWidth: '400px', margin: '0 auto' }}>
-                            <h3 className="section-title">Live Attendance Tracker</h3>
-                            <p style={{ color: '#6b7280', marginBottom: '32px' }}>Scan participant QR codes to mark attendance and track live turn-out numbers.</p>
+                {activeTab === 'scanner' && (() => {
+                    const scannedCount = participants.filter(p => !!p.scannedAt).length;
+                    const totalCount = participants.filter(p => p.status === 'Approved' || p.paymentStatus === 'free' || p.status === 'attended').length || participants.length;
+                    const attendancePct = totalCount > 0 ? Math.round((scannedCount / totalCount) * 100) : 0;
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '40px' }}>
-                                <div style={{ backgroundColor: '#f0fdf4', padding: '24px', borderRadius: '16px', border: '1px solid #dcfce7' }}>
-                                    <span style={{ display: 'block', fontSize: '2rem', fontWeight: 'bold', color: '#16a34a' }}>{participants.filter(p => !!p.scannedAt).length}</span>
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#166534', textTransform: 'uppercase' }}>Present</span>
+                    return (
+                        <div style={{ padding: '32px', display: 'grid', gridTemplateColumns: '1fr 420px', gap: '32px', alignItems: 'start' }}>
+                            {/* Left: Stats + Scanner */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                <div>
+                                    <h3 className="section-title" style={{ marginBottom: '4px' }}>Live Attendance Dashboard</h3>
+                                    <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>Scan QR codes to mark attendance in real-time</p>
                                 </div>
-                                <div style={{ backgroundColor: '#f9fafb', padding: '24px', borderRadius: '16px', border: '1px solid #f3f4f6' }}>
-                                    <span style={{ display: 'block', fontSize: '2rem', fontWeight: 'bold', color: '#6b7280' }}>{participants.length - participants.filter(p => !!p.scannedAt).length}</span>
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#4b5563', textTransform: 'uppercase' }}>Pending</span>
+
+                                {/* Stats Row */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                                    <div style={{ background: 'linear-gradient(135deg,#f0fdf4,#dcfce7)', padding: '20px', borderRadius: '16px', border: '1px solid #bbf7d0', textAlign: 'center' }}>
+                                        <span style={{ display: 'block', fontSize: '2.2rem', fontWeight: 900, color: '#16a34a' }}>{scannedCount}</span>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>✓ Present</span>
+                                    </div>
+                                    <div style={{ background: 'linear-gradient(135deg,#fef2f2,#fee2e2)', padding: '20px', borderRadius: '16px', border: '1px solid #fecaca', textAlign: 'center' }}>
+                                        <span style={{ display: 'block', fontSize: '2.2rem', fontWeight: 900, color: '#dc2626' }}>{totalCount - scannedCount}</span>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>⏳ Absent</span>
+                                    </div>
+                                    <div style={{ background: 'linear-gradient(135deg,#f5f3ff,#ede9fe)', padding: '20px', borderRadius: '16px', border: '1px solid #ddd6fe', textAlign: 'center' }}>
+                                        <span style={{ display: 'block', fontSize: '2.2rem', fontWeight: 900, color: '#7c3aed' }}>{totalCount}</span>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>👥 Total</span>
+                                    </div>
+                                </div>
+
+                                {/* Progress Bar */}
+                                <div style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1.5px solid #e5e7eb' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#374151' }}>Attendance Rate</span>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#7c3aed' }}>{attendancePct}%</span>
+                                    </div>
+                                    <div style={{ height: '10px', background: '#f3f4f6', borderRadius: '9999px', overflow: 'hidden' }}>
+                                        <div style={{
+                                            height: '100%',
+                                            width: `${attendancePct}%`,
+                                            background: 'linear-gradient(90deg, #7c3aed, #10b981)',
+                                            borderRadius: '9999px',
+                                            transition: 'width 0.5s ease'
+                                        }} />
+                                    </div>
+                                    <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '8px 0 0' }}>
+                                        {scannedCount} of {totalCount} registered participants have checked in
+                                    </p>
+                                </div>
+
+                                {/* Participant List with Attendance Status */}
+                                <div style={{ background: 'white', borderRadius: '16px', border: '1.5px solid #e5e7eb', overflow: 'hidden' }}>
+                                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#374151' }}>Participant Attendance</p>
+                                        <button
+                                            onClick={handleExportAttendance}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 800, color: '#6d28d9', background: '#f5f3ff', border: '1.5px solid #c4b5fd', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer' }}
+                                        >
+                                            ⬇ Export CSV
+                                        </button>
+                                    </div>
+                                    <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                                        {participants.length === 0 ? (
+                                            <p style={{ textAlign: 'center', padding: '32px', color: '#9ca3af', fontSize: '0.85rem' }}>No participants yet</p>
+                                        ) : (
+                                            participants.map(ticket => (
+                                                <div key={ticket._id} style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '12px',
+                                                    padding: '12px 20px',
+                                                    borderBottom: '1px solid #f9fafb',
+                                                    background: ticket.scannedAt ? '#f0fdf4' : 'white'
+                                                }}>
+                                                    <div style={{
+                                                        width: '32px', height: '32px', borderRadius: '50%',
+                                                        background: ticket.scannedAt ? '#dcfce7' : '#f3f4f6',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        fontSize: '0.9rem', flexShrink: 0
+                                                    }}>
+                                                        {ticket.scannedAt ? '✅' : '⏳'}
+                                                    </div>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem', color: '#111827' }}>
+                                                            {ticket.participantId.firstName} {ticket.participantId.lastName}
+                                                        </p>
+                                                        <p style={{ margin: 0, fontSize: '0.7rem', color: '#6b7280' }}>{ticket.participantId.email}</p>
+                                                    </div>
+                                                    {ticket.scannedAt ? (
+                                                        <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                                            {new Date(ticket.scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleMarkAttendance(ticket.ticketId)}
+                                                            style={{ fontSize: '0.7rem', fontWeight: 800, color: '#6d28d9', background: '#f5f3ff', border: '1px solid #c4b5fd', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                        >
+                                                            Check-in
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-                            <QRScanner onScanSuccess={{
-                                eventId: id,
-                                callback: () => {
-                                    setTimeout(() => fetchEventData(), 800);
-                                }
-                            }} />
+                            {/* Right: QR Scanner */}
+                            <div>
+                                <QRScanner onScanSuccess={{
+                                    eventId: id,
+                                    callback: () => { setTimeout(() => fetchEventData(), 800); }
+                                }} />
+                            </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
             </div>
 
             {/* ─── Review Modal ──────────────────────────────────────────────── */}
