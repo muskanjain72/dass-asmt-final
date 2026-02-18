@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,13 +12,24 @@ const AuthCard = ({ initialTab = 'login' }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
-
-
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const { login, registerParticipant } = useAuth();
+  const { user, loading, login, registerParticipant } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already logged in - Safe inside useEffect
+  useEffect(() => {
+    if (user && !loading) {
+      if (user.role === 'admin') navigate('/admin/dashboard');
+      else if (user.role === 'organizer') navigate('/organizer/dashboard');
+      else navigate('/dashboard');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading || (user && !loading)) {
+    return null; // Don't flash login form if loading or redirecting
+  }
 
   const switchTo = (t) => {
     setError('');

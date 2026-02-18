@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
 import Navbar from './components/Navbar';
@@ -20,14 +20,14 @@ import ProfilePage from './pages/ProfilePage';
 import OrganizerResetRequest from './pages/OrganizerResetRequest';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Simple placeholder for Home
-const Home = () => {
-  return (
-    <div className="hero bg-gray-50 py-20 text-center">
-      <h1 className="text-4xl font-bold text-gray-900 mb-4">Welcome to Campus Events</h1>
-      <p className="text-xl text-gray-600 mb-8">Discover and join amazing events happening on campus.</p>
-    </div>
-  );
+// Smart redirect for the root path
+const RootRedirect = () => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+  if (user.role === 'organizer') return <Navigate to="/organizer/dashboard" replace />;
+  return <Navigate to="/dashboard" replace />;
 };
 
 // Main Layout Component to handle conditional Navbar
@@ -54,7 +54,7 @@ function App() {
         <MainLayout>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/organizer/reset-password" element={<OrganizerResetRequest />} />

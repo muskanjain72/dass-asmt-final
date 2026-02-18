@@ -9,16 +9,18 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const checkLoggedIn = async () => {
-            // Support both persistent (localStorage) and session (sessionStorage) tokens
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+            try {
+                const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
 
-            if (token && storedUser) {
-                // Restore state from storage
-                setUser(JSON.parse(storedUser));
-
-                // Configure axios default header
-                api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                if (token && storedUser) {
+                    setUser(JSON.parse(storedUser));
+                    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                }
+            } catch (error) {
+                console.error("Session restoration failed:", error);
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
             }
             setLoading(false);
         };
