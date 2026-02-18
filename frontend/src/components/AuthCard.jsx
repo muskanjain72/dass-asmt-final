@@ -20,15 +20,18 @@ const AuthCard = ({ initialTab = 'login' }) => {
 
   // Redirect if already logged in - Safe inside useEffect
   useEffect(() => {
-    if (user && !loading) {
+    // Only auto-redirect if we are NOT on the register tab
+    // This allows handleRegister to handle the /onboarding redirect for new participants
+    if (user && !loading && tab !== 'register') {
       if (user.role === 'admin') navigate('/admin/dashboard');
       else if (user.role === 'organizer') navigate('/organizer/dashboard');
       else navigate('/dashboard');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, tab]);
 
-  if (loading || (user && !loading)) {
-    return null; // Don't flash login form if loading or redirecting
+  // Don't flash login form if loading OR if we are about to auto-redirect
+  if (loading || (user && !loading && tab !== 'register')) {
+    return null;
   }
 
   const switchTo = (t) => {

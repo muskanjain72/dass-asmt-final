@@ -19,6 +19,16 @@ const ProfilePage = () => {
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
 
+    const availableInterests = [
+        'Data Science', 'Cybersecurity', 'Competitive Programming', 'Robotics',
+        'Blockchain', 'UI / UX Design', 'Cloud Computing', 'Entrepreneurship',
+        'Finance', 'Public Speaking', 'Music', 'Dance', 'Photography',
+        'Sports', 'Social Service'
+    ];
+
+    const [followedClubs, setFollowedClubs] = useState([]);
+    const [loadingClubs, setLoadingClubs] = useState(false);
+
     useEffect(() => {
         if (user) {
             setFormData(prev => ({
@@ -36,8 +46,46 @@ const ProfilePage = () => {
                 interests: user.interests || [],
                 password: '' // Reset password field on load
             }));
+            if (user.role === 'participant') {
+                fetchFollowedClubs();
+            }
         }
     }, [user]);
+
+    const fetchFollowedClubs = async () => {
+        setLoadingClubs(true);
+        try {
+            const { data } = await api.get('/users/organizers');
+            // Filter only followed ones
+            const followed = data.filter(org => user.followedOrganizers?.includes(org._id));
+            setFollowedClubs(followed);
+        } catch (err) {
+            console.error("Error fetching followed clubs", err);
+        } finally {
+            setLoadingClubs(false);
+        }
+    };
+
+    const handleUnfollow = async (id) => {
+        try {
+            await api.put(`/users/organizers/${id}/follow`);
+            setFollowedClubs(prev => prev.filter(c => c._id !== id));
+            // Update local user state too
+            const updatedFollowed = user.followedOrganizers.filter(oid => oid !== id);
+            updateUser({ followedOrganizers: updatedFollowed });
+        } catch (err) {
+            alert("Error unfollowing club");
+        }
+    };
+
+    const toggleInterest = (interest) => {
+        setFormData(prev => {
+            const interests = prev.interests.includes(interest)
+                ? prev.interests.filter(i => i !== interest)
+                : [...prev.interests, interest];
+            return { ...prev, interests };
+        });
+    };
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -211,51 +259,69 @@ const ProfilePage = () => {
 
                             {/* Interests Section */}
                             <div style={{ marginTop: '1.5rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#374151' }}>Interests & Preferences</label>
-                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                    <input
-                                        type="text"
-                                        className="input"
-                                        placeholder="Add an interest (e.g. Music, Tech)"
-                                        value={newInterest}
-                                        onChange={(e) => setNewInterest(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddInterest())}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="btn-outline"
-                                        onClick={handleAddInterest}
-                                        style={{ whiteSpace: 'nowrap' }}
-                                    >
-                                        Add
-                                    </button>
-                                </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                    {formData.interests.map((interest, index) => (
-                                        <div key={index} style={{
-                                            backgroundColor: '#e0e7ff',
-                                            color: '#4338ca',
-                                            padding: '0.25rem 0.75rem',
-                                            borderRadius: '9999px',
-                                            fontSize: '0.875rem',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem'
-                                        }}>
-                                            <span>{interest}</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveInterest(interest)}
-                                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#4338ca', fontSize: '1rem', lineHeight: 1 }}
-                                            >
-                                                &times;
-                                            </button>
-                                        </div>
+                                <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', fontWeight: '600', color: '#374151' }}>Interests & Preferences</label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                                    {availableInterests.map(interest => (
+                                        <button
+                                            key={interest}
+                                            type="button"
+                                            onClick={() => toggleInterest(interest)}
+                                            className={formData.interests.includes(interest) ? 'btn-primary' : 'btn-outline'}
+                                            style={{
+                                                padding: '0.4rem 0.8rem',
+                                                fontSize: '0.75rem',
+                                                borderRadius: '9999px',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            {interest}
+                                        </button>
                                     ))}
-                                    {formData.interests.length === 0 && (
-                                        <span style={{ color: '#9ca3af', fontSize: '0.875rem', fontStyle: 'italic' }}>No interests added yet.</span>
-                                    )}
                                 </div>
+                            </div>
+
+                            {/* Followed Clubs Section */}
+                            <div style={{ marginTop: '2rem', borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem' }}>
+                                <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem', color: '#374151' }}>Followed Clubs</h3>
+                                {loadingClubs ? (
+                                    <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>Loading followed clubs...</p>
+                                ) : followedClubs.length > 0 ? (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+                                        {followedClubs.map(club => (
+                                            <div key={club._id} style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                padding: '0.75rem 1rem',
+                                                backgroundColor: '#f9fafb',
+                                                borderRadius: '0.5rem',
+                                                border: '1px solid #e5e7eb'
+                                            }}>
+                                                <div>
+                                                    <p style={{ fontWeight: '600', fontSize: '0.9rem', color: '#111827' }}>{club.organizerName}</p>
+                                                    <p style={{ fontSize: '0.75rem', color: '#6366f1' }}>{club.category}</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleUnfollow(club._id)}
+                                                    style={{
+                                                        fontSize: '0.75rem',
+                                                        color: '#ef4444',
+                                                        border: '1px solid #fee2e2',
+                                                        backgroundColor: '#fef2f2',
+                                                        padding: '0.25rem 0.5rem',
+                                                        borderRadius: '0.25rem',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    Unfollow
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p style={{ fontSize: '0.875rem', color: '#9ca3af', fontStyle: 'italic' }}>You aren't following any clubs yet.</p>
+                                )}
                             </div>
                         </>
                     ) : (

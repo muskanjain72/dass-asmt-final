@@ -10,7 +10,12 @@ const OnboardingPage = () => {
     const [loading, setLoading] = useState(false);
 
     // Step 1: Interests
-    const availableInterests = ['Coding', 'Music', 'Sports', 'Art', 'Dance', 'Acting', 'Photography', 'Gaming', 'Technology', 'Social Service', 'Business'];
+    const availableInterests = [
+        'Data Science', 'Cybersecurity', 'Competitive Programming', 'Robotics',
+        'Blockchain', 'UI / UX Design', 'Cloud Computing', 'Entrepreneurship',
+        'Finance', 'Public Speaking', 'Music', 'Dance', 'Photography',
+        'Sports', 'Social Service'
+    ];
     const [selectedInterests, setSelectedInterests] = useState([]);
 
     // Step 2: Clubs
