@@ -276,17 +276,24 @@ const CreateEvent = () => {
                                     <select className="input" style={{ paddingLeft: '12px', marginTop: '4px' }} value={newField.type} onChange={(e) => setNewField({ ...newField, type: e.target.value })}>
                                         <option value="text">Short Text</option>
                                         <option value="number">Number</option>
-                                        <option value="dropdown">Selection</option>
+                                        <option value="dropdown">Selection (Dropdown)</option>
+                                        <option value="radio">Radio Options</option>
                                         <option value="checkbox">Binary (Checkbox)</option>
                                         <option value="file">File Upload</option>
                                     </select>
                                 </div>
-                                <button type="button" onClick={addCustomField} style={{ height: '46px', backgroundColor: '#10b981', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Add Field</button>
+                                <div style={{ marginBottom: '12px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold' }}>
+                                        <input type="checkbox" checked={newField.required} onChange={(e) => setNewField({ ...newField, required: e.target.checked })} />
+                                        Required
+                                    </label>
+                                </div>
+                                <button type="button" onClick={addCustomField} style={{ height: '46px', backgroundColor: '#10b981', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', padding: '0 20px' }}>Add Field</button>
                             </div>
-                            {(newField.type === 'dropdown' || newField.type === 'checkbox') && (
+                            {(newField.type === 'dropdown' || newField.type === 'radio' || newField.type === 'checkbox') && (
                                 <div style={{ marginTop: '16px' }}>
                                     <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase' }}>Options (comma separated)</label>
-                                    <input type="text" placeholder="Yes, No | Small, Medium, Large" className="input" style={{ paddingLeft: '12px', marginTop: '4px' }} value={newField.options} onChange={(e) => setNewField({ ...newField, options: e.target.value })} />
+                                    <input type="text" placeholder="e.g. Small, Medium, Large" className="input" style={{ paddingLeft: '12px', marginTop: '4px' }} value={newField.options} onChange={(e) => setNewField({ ...newField, options: e.target.value })} />
                                 </div>
                             )}
                         </div>

@@ -44,8 +44,8 @@ const EventDetails = () => {
             return;
         }
 
-        // If modal is not open and event has schema, open it
-        if (!showRegModal && event.formSchema && event.formSchema.length > 0) {
+        // If modal is not open and event has schema/is merch, open it
+        if (!showRegModal && (isMerch || (event.formSchema && event.formSchema.length > 0))) {
             setShowRegModal(true);
             return;
         }
@@ -53,12 +53,21 @@ const EventDetails = () => {
         setRegistering(true);
 
         try {
-            await api.post('/tickets', {
+            const payload = {
                 eventId: id,
-                formResponses: formResponses,
-                purchaseData: { quantity: 1 }
-            });
-            toast.success('Registration request sent! Awaiting organizer review.');
+                formResponses: event.type === 'merchandise' ? {
+                    'Full Name': formResponses['Full Name'],
+                    'Email ID': formResponses['Email ID'],
+                    'Contact Number': formResponses['Contact Number']
+                } : formResponses,
+                purchaseData: event.type === 'merchandise' ? {
+                    quantity: formResponses.quantity || 1,
+                    variants: formResponses.variants || {}
+                } : { quantity: 1 }
+            };
+
+            await api.post('/tickets', payload);
+            toast.success(event.type === 'merchandise' ? 'Purchase successful!' : 'Registration request sent! Awaiting organizer review.');
             setShowRegModal(false);
             setTimeout(() => navigate('/dashboard'), 2000);
         } catch (error) {

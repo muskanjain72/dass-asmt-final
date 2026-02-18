@@ -82,7 +82,7 @@ const eventSchema = new mongoose.Schema({
         label: { type: String, required: true },
         type: {
             type: String,
-            enum: ['text', 'number', 'dropdown', 'checkbox', 'file', 'email', 'date'],
+            enum: ['text', 'number', 'dropdown', 'checkbox', 'file', 'email', 'date', 'radio'],
             required: true
         },
         required: { type: Boolean, default: false },

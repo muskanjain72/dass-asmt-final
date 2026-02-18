@@ -22,7 +22,7 @@ const ticketSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'registered', 'Successful', 'attended', 'cancelled', 'completed', 'rejected'],
+        enum: ['pending', 'registered', 'Approved', 'Successful', 'attended', 'cancelled', 'completed', 'rejected'],
         default: 'registered'
     },
     // Store answers to the event's custom form
@@ -33,7 +33,8 @@ const ticketSchema = new mongoose.Schema({
     // For paid events/merch
     purchaseData: {
         quantity: { type: Number, default: 1 },
-        variant: { type: String } // e.g., Size for T-shirt
+        variants: { type: Map, of: String },
+        variant: { type: String }
     },
     paymentStatus: {
         type: String,

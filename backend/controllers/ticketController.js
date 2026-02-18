@@ -48,13 +48,20 @@ const registerForEvent = async (req, res) => {
                 return res.status(400).json({ message: 'Registration full' });
             }
         } else if (event.type === 'merchandise') {
-            if (event.merchandiseStock !== undefined && event.merchandiseStock <= 0) {
-                return res.status(400).json({ message: 'Out of stock' });
+            const quantity = purchaseData?.quantity || 1;
+            const limit = event.purchaseLimit || 1;
+
+            if (quantity > limit) {
+                return res.status(400).json({ message: `Purchase limit for this item is ${limit}` });
+            }
+
+            if (event.merchandiseStock !== undefined && event.merchandiseStock < quantity) {
+                return res.status(400).json({ message: `Not enough stock. Available: ${event.merchandiseStock}` });
             }
         }
 
-        // 5. Validate Required Form Fields
-        if (event.formSchema && event.formSchema.length > 0) {
+        // 5. Validate Required Form Fields (Only for Normal events or if merch has form)
+        if (event.type === 'normal' && event.formSchema && event.formSchema.length > 0) {
             const missingFields = [];
             event.formSchema.forEach(field => {
                 if (field.required) {
@@ -76,23 +83,28 @@ const registerForEvent = async (req, res) => {
         const isPaid = event.registrationFee > 0 || event.type === 'merchandise';
         const isMerch = event.type === 'merchandise';
 
-        // 5. Create Ticket
+        // 6. Create Ticket
         const ticketId = generateTicketId();
         const newTicket = new Ticket({
             ticketId: ticketId,
             participantId: userId,
             eventId: eventId,
-            status: isMerch ? 'Approved' : 'pending',
+            status: isMerch ? 'Approved' : 'pending', // Use 'Approved' for consistency with other parts of the app
             qrCodeData: isMerch ? ticketId : '',
             paymentStatus: isMerch ? 'completed' : (isPaid ? 'pending' : 'free'),
             responses: formResponses || {},
-            purchaseData: purchaseData || {}
+            purchaseData: {
+                quantity: purchaseData?.quantity || 1,
+                variants: purchaseData?.variants || {},
+                variant: purchaseData?.variant || ''
+            }
         });
 
-        // 6. Update counts and stock if Merch
+        // 7. Update counts and stock
         if (isMerch) {
+            const qty = purchaseData?.quantity || 1;
             if (event.merchandiseStock !== undefined) {
-                event.merchandiseStock = Math.max(0, event.merchandiseStock - 1);
+                event.merchandiseStock = Math.max(0, event.merchandiseStock - qty);
             }
             await event.save();
         } else if (event.type === 'normal') {
