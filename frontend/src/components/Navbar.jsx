@@ -35,7 +35,8 @@ const Navbar = () => {
                                     <>
                                         <Link to="/organizer/dashboard?tab=dashboard" className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}>Dashboard</Link>
                                         <Link to="/organizer/create-event" className={`nav-link ${location.pathname === '/organizer/create-event' ? 'active' : ''}`}>Create Event</Link>
-                                        <Link to="/organizer/dashboard?tab=list" className={`nav-link ${activeTab === 'list' ? 'active' : ''}`}>My Events</Link>
+                                        <Link to="/organizer/dashboard?tab=ongoing" className={`nav-link ${activeTab === 'ongoing' ? 'active' : ''}`}>Ongoing Events</Link>
+                                        <Link to="/organizer/dashboard?tab=verifications" className={`nav-link ${activeTab === 'verifications' ? 'active' : ''}`}>Verifications</Link>
                                         <Link to="/profile" className="nav-link">Profile</Link>
                                         <button onClick={handleLogout} className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}>Logout</button>
                                     </>
