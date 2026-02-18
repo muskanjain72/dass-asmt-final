@@ -115,7 +115,7 @@ const BrowseEvents = () => {
                             onChange={(e) => setType(e.target.value)}
                         >
                             <option value="">Event Type</option>
-                            <option value="normal">Events</option>
+                            <option value="normal">Normal</option>
                             <option value="merchandise">Merchandise</option>
                         </select>
 
