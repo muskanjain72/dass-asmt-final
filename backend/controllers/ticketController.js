@@ -3,6 +3,7 @@ const Event = require('../models/Event');
 const User = require('../models/User');
 const crypto = require('crypto');
 const ics = require('ics');
+const sendEmail = require('../utils/sendEmail');
 
 // Generate unique Ticket ID
 const generateTicketId = () => {
@@ -73,33 +74,50 @@ const registerForEvent = async (req, res) => {
         }
 
         const isPaid = event.registrationFee > 0 || event.type === 'merchandise';
+        const isMerch = event.type === 'merchandise';
 
         // 5. Create Ticket
+        const ticketId = generateTicketId();
         const newTicket = new Ticket({
-            ticketId: generateTicketId(),
+            ticketId: ticketId,
             participantId: userId,
             eventId: eventId,
-            status: 'pending', // Always pending for review as per requirement
-            qrCodeData: '', // Generate QR only after approval
-            paymentStatus: isPaid ? 'pending' : 'free',
+            status: isMerch ? 'Approved' : 'pending',
+            qrCodeData: isMerch ? ticketId : '',
+            paymentStatus: isMerch ? 'completed' : (isPaid ? 'pending' : 'free'),
             responses: formResponses || {},
             purchaseData: purchaseData || {}
         });
 
-        await newTicket.save();
-
-        // 6. Update Event Counts (Normal only)
-        // Stock for merchandise is decremented ON APPROVAL
-        if (event.type === 'normal') {
+        // 6. Update counts and stock if Merch
+        if (isMerch) {
+            if (event.merchandiseStock !== undefined) {
+                event.merchandiseStock = Math.max(0, event.merchandiseStock - 1);
+            }
+            await event.save();
+        } else if (event.type === 'normal') {
             event.registeredCount += 1;
             await event.save();
         }
 
-        // 7. Email Workflow (Placeholder/Mock)
-        console.log(`[EMAIL] Sending confirmation to ${req.user.email} for Ticket ID: ${newTicket.ticketId}`);
+        await newTicket.save();
+
+        // 7. Email Workflow
+        if (isMerch) {
+            await sendEmail({
+                email: req.user.email,
+                subject: `Order Confirmation - ${event.name}`,
+                message: `
+                    <h1>Thank you for your purchase!</h1>
+                    <p>Your order for <strong>${event.name}</strong> has been confirmed.</p>
+                    <p><strong>Ticket ID:</strong> ${newTicket.ticketId}</p>
+                    <p>You can find your ticket and QR code in your dashboard.</p>
+                `
+            });
+        }
 
         res.status(201).json({
-            message: event.type === 'merchandise' ? 'Order placed. Please upload payment proof.' : 'Registration successful',
+            message: isMerch ? 'Purchase successful!' : 'Registration submitted! Awaiting organizer approval.',
             ticket: newTicket
         });
 
@@ -259,13 +277,26 @@ const approveOrder = async (req, res) => {
         }
 
         ticket.paymentStatus = 'completed';
-        ticket.status = 'Successful';
+        ticket.status = 'Approved';
         // Generate QR on approval
-        ticket.qrCodeData = `EVENT:${event._id}-USER:${ticket.participantId}-TKT:${ticket.ticketId}`;
+        ticket.qrCodeData = ticket.ticketId;
 
         await ticket.save();
 
-        console.log(`[EMAIL] Sending confirmation with QR to participant for Ticket ID: ${ticket.ticketId}`);
+        // Send confirmation email
+        const participant = await User.findById(ticket.participantId);
+        if (participant) {
+            await sendEmail({
+                email: participant.email,
+                subject: `Registration Approved - ${event.name}`,
+                message: `
+                    <h1>Registration Approved!</h1>
+                    <p>Congratulations, your registration for <strong>${event.name}</strong> has been approved.</p>
+                    <p><strong>Ticket ID:</strong> ${ticket.ticketId}</p>
+                    <p>Your QR code and ticket details are now available in your dashboard.</p>
+                `
+            });
+        }
 
         res.json({ message: 'Order approved successfully', ticket });
 
@@ -290,10 +321,21 @@ const rejectOrder = async (req, res) => {
         }
 
         ticket.paymentStatus = 'rejected';
-        ticket.status = 'rejected'; // Match with accept/reject terminology
+        ticket.status = 'Rejected';
         await ticket.save();
 
-        console.log(`[EMAIL] Notifying participant about payment rejection for Ticket ID: ${ticket.ticketId}`);
+        const participant = await User.findById(ticket.participantId);
+        if (participant) {
+            await sendEmail({
+                email: participant.email,
+                subject: `Registration Update - ${event.name}`,
+                message: `
+                    <h1>Registration Status Update</h1>
+                    <p>We regret to inform you that your registration for <strong>${event.name}</strong> has being rejected.</p>
+                    <p>Please contact the organizer for further details.</p>
+                `
+            });
+        }
 
         res.json({ message: 'Order rejected', ticket });
     } catch (error) {
@@ -329,17 +371,30 @@ const acceptRegistration = async (req, res) => {
             await event.save();
         }
 
-        ticket.status = event.type === 'merchandise' || event.registrationFee > 0 ? 'Successful' : 'registered';
+        ticket.status = 'Approved';
         if (event.registrationFee > 0 || event.type === 'merchandise') {
             ticket.paymentStatus = 'completed';
         }
 
         // Generate QR on approval
-        ticket.qrCodeData = `EVENT:${event._id}-USER:${ticket.participantId}-TKT:${ticket.ticketId}`;
+        ticket.qrCodeData = ticket.ticketId;
 
         await ticket.save();
 
-        console.log(`[EMAIL] Sending acceptance confirmation with QR to participant for Ticket ID: ${ticket.ticketId}`);
+        // Send email
+        const participant = await User.findById(ticket.participantId);
+        if (participant) {
+            await sendEmail({
+                email: participant.email,
+                subject: `Registration Approved - ${event.name}`,
+                message: `
+                    <h1>Registration Approved!</h1>
+                    <p>Your registration for <strong>${event.name}</strong> has been approved.</p>
+                    <p><strong>Ticket ID:</strong> ${ticket.ticketId}</p>
+                    <p>Please log in to your dashboard to view your ticket and QR code.</p>
+                `
+            });
+        }
 
         res.json({ message: 'Registration accepted successfully', ticket });
 
@@ -363,13 +418,24 @@ const rejectRegistration = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
-        ticket.status = 'rejected';
+        ticket.status = 'Rejected';
         if (event.registrationFee > 0 || event.type === 'merchandise') {
             ticket.paymentStatus = 'rejected';
         }
         await ticket.save();
 
-        console.log(`[EMAIL] Notifying participant about registration rejection for Ticket ID: ${ticket.ticketId}`);
+        // Send email
+        const participant = await User.findById(ticket.participantId);
+        if (participant) {
+            await sendEmail({
+                email: participant.email,
+                subject: `Registration Rejected - ${event.name}`,
+                message: `
+                    <h1>Registration Rejected</h1>
+                    <p>Your registration for <strong>${event.name}</strong> has been rejected by the organizer.</p>
+                `
+            });
+        }
 
         res.json({ message: 'Registration rejected', ticket });
 

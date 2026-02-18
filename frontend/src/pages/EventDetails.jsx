@@ -84,6 +84,7 @@ const EventDetails = () => {
 
     const getCTAButtonText = () => {
         if (registering) return 'Processing...';
+        if (isRegistered) return isMerch ? 'Purchased' : 'Already Registered';
         if (isDeadlinePassed) return 'Deadline Passed';
         if (isFull) return 'Registration Full';
         if (isOutOfStock) return 'Out of Stock';
@@ -180,7 +181,7 @@ const EventDetails = () => {
                     <button
                         onClick={handleRegister}
                         disabled={isDisabled || registering}
-                        className={`btn-primary btn-block w-full py-3.5 rounded-xl font-bold text-base shadow-sm hover:shadow-md transition-all ${isDisabled || registering
+                        className={`btn-primary btn-block w-full py-3.5 rounded-xl font-bold text-base shadow-sm hover:shadow-md transition-all ${isDisabled || registering || isRegistered
                             ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none border-none hover:bg-gray-200'
                             : ''
                             }`}

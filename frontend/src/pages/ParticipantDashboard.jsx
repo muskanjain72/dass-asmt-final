@@ -52,7 +52,7 @@ const ParticipantDashboard = () => {
             case 'Completed':
                 return isCompleted;
             case 'Cancelled/Rejected':
-                return isCancelled || t.status === 'rejected';
+                return isCancelled || t.status?.toLowerCase() === 'rejected' || t.paymentStatus === 'rejected';
             default:
                 return true;
         }
@@ -60,13 +60,14 @@ const ParticipantDashboard = () => {
 
     const getStatusBadgeClass = (status) => {
         switch (status?.toLowerCase()) {
-            case 'registered': return 'badge-blue';
+            case 'registered':
             case 'successful':
-            case 'confirmed': return 'badge-green';
+            case 'confirmed':
+            case 'approved': return 'badge-green';
             case 'attended': return 'badge-purple';
             case 'cancelled':
             case 'rejected': return 'badge-red';
-            case 'pending': return 'badge-gray';
+            case 'pending':
             case 'pending_approval': return 'badge-orange';
             default: return 'badge-gray';
         }
@@ -198,8 +199,8 @@ const ParticipantDashboard = () => {
                                         </td>
                                         <td className="text-gray-600">{ticket.eventId?.organizer?.organizerName}</td>
                                         <td>
-                                            <span className={`badge ${getStatusBadgeClass(ticket.paymentStatus === 'pending_approval' || ticket.paymentStatus === 'rejected' ? ticket.paymentStatus : ticket.status)}`}>
-                                                {(ticket.paymentStatus === 'pending_approval' || ticket.paymentStatus === 'rejected' ? ticket.paymentStatus : ticket.status).replace('_', ' ')}
+                                            <span className={`badge ${getStatusBadgeClass(ticket.status)}`}>
+                                                {ticket.status === 'pending' ? 'Pending Approval' : ticket.status.replace('_', ' ')}
                                             </span>
                                         </td>
                                         <td className="text-gray-500">{ticket.responses?.teamName || '-'}</td>

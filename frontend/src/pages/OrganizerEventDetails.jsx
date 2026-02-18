@@ -387,8 +387,8 @@ const OrganizerEventDetails = () => {
                                             <td style={{ color: '#6b7280' }}>{new Date(ticket.createdAt).toLocaleDateString()}</td>
                                             <td style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#4b5563' }}>{ticket.ticketId.slice(0, 8)}...</td>
                                             <td>
-                                                <span className={`badge ${ticket.paymentStatus === 'completed' ? 'badge-green' : ticket.paymentStatus === 'free' ? 'badge-blue' : 'badge-orange'}`}>
-                                                    {ticket.paymentStatus}
+                                                <span className={`badge ${ticket.status === 'Approved' || ticket.paymentStatus === 'completed' ? 'badge-green' : ticket.paymentStatus === 'free' ? 'badge-blue' : 'badge-orange'}`}>
+                                                    {ticket.status === 'Approved' ? 'Approved' : (ticket.paymentStatus?.replace('_', ' ') || ticket.status)}
                                                 </span>
                                             </td>
                                             <td style={{ color: '#6b7280' }}>Individual</td>
@@ -398,7 +398,7 @@ const OrganizerEventDetails = () => {
                                                 </span>
                                             </td>
                                             <td style={{ padding: '16px 32px' }}>
-                                                {!ticket.scannedAt && (ticket.status === 'Successful' || ticket.paymentStatus === 'free') && (
+                                                {!ticket.scannedAt && (ticket.status === 'Approved' || ticket.status === 'Successful' || ticket.paymentStatus === 'free') && (
                                                     <button
                                                         onClick={() => handleMarkAttendance(ticket.ticketId)}
                                                         className="text-purple-600 font-bold hover:underline text-xs"

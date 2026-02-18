@@ -11,7 +11,7 @@ const TicketModal = ({ ticket, onClose }) => {
     const event = ticket.eventId;
     const isMerch = event?.type === 'merchandise';
     const showUpload = ticket.paymentStatus === 'pending' || ticket.paymentStatus === 'rejected';
-    const isPendingApproval = ticket.paymentStatus === 'pending_approval';
+    const isPendingApproval = ticket.status === 'pending';
 
     const handleUpload = async () => {
         if (!file) {
@@ -76,8 +76,8 @@ const TicketModal = ({ ticket, onClose }) => {
                                 {isPendingApproval ? (
                                     <div className="text-yellow-600">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        <p className="font-bold">Verification Pending</p>
-                                        <p className="text-xs">Your payment proof is being reviewed.</p>
+                                        <p className="font-bold">Pending Approval</p>
+                                        <p className="text-xs">Your registration is being reviewed by the organizer.</p>
                                     </div>
                                 ) : showUpload ? (
                                     <div className="space-y-2">
@@ -108,6 +108,15 @@ const TicketModal = ({ ticket, onClose }) => {
 
                     {/* Ticket Details */}
                     <div className="w-full space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-100 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">Participant</span>
+                            <span className="font-bold text-gray-900">{ticket.participantId?.firstName} {ticket.participantId?.lastName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">Email</span>
+                            <span className="text-gray-900">{ticket.participantId?.email}</span>
+                        </div>
+                        <div className="border-t border-gray-200 my-2"></div>
                         <div className="flex justify-between">
                             <span className="text-gray-500">Ticket ID</span>
                             <span className="font-mono font-bold text-gray-900">#{ticket.ticketId}</span>
