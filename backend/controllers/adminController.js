@@ -2,6 +2,7 @@
 const User = require('../models/User');
 const PasswordResetRequest = require('../models/PasswordResetRequest');
 const crypto = require('crypto');
+const sendEmail = require('../utils/sendEmail');
 
 // Helper to generate random password
 const generateRandomPassword = (length = 10) => {
@@ -43,8 +44,38 @@ const createOrganizer = async (req, res) => {
         });
 
         if (organizer) {
+            // Send email to organizer with credentials
+            const emailMessage = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+        <h2>Organizer Account Created Successfully</h2>
+        
+        <p>Hello <strong>${organizerName}</strong>,</p>
+        
+        <p>Your organizer account has been successfully created by the administrator for the Felicity platform.</p>
+        
+        <p>You can log in immediately using the system-generated credentials below:</p>
+        
+        <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Login Email:</strong> ${loginEmail}</p>
+            <p style="margin: 5px 0;"><strong>Temporary Password:</strong> ${loginPassword}</p>
+        </div>
+        
+        <p><strong>Important:</strong> For security reasons, please change your password immediately after your first login.</p>
+        
+        <p>If you did not expect this account creation, please contact the administrator.</p>
+        
+        <p>Regards,<br/>Felicity Team</p>
+    </div>
+`;
+
+            await sendEmail({
+                email: organizer.contactEmail,
+                subject: 'Your Organizer Account Credentials - Felicity',
+                message: emailMessage
+            });
+
             res.status(201).json({
-                message: 'Organizer created successfully',
+                message: 'Organizer created successfully and email sent',
                 organizer: {
                     id: organizer._id,
                     name: organizer.organizerName,
