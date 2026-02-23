@@ -62,8 +62,12 @@ const OrganizerProfile = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user, updateUser } = useAuth();
+    const isOwnProfile = user && user.role === 'organizer' && user._id === id;
 
     const [organizer, setOrganizer] = useState(null);
+    const [editMode, setEditMode] = useState(false);
+    const [editData, setEditData] = useState({});
+    const [saving, setSaving] = useState(false);
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('upcoming');
@@ -75,6 +79,7 @@ const OrganizerProfile = () => {
             try {
                 const { data } = await api.get(`/users/organizers/${id}`);
                 setOrganizer(data.organizer);
+                setEditData(data.organizer);
                 setEvents(data.events || []);
             } catch (e) {
                 console.error(e);
@@ -102,6 +107,27 @@ const OrganizerProfile = () => {
             alert('Error updating follow status');
         } finally {
             setFollowLoading(false);
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        setSaving(true);
+        try {
+            const { data } = await api.put('/users/profile', {
+                organizerName: editData.organizerName,
+                category: editData.category,
+                description: editData.description,
+                contactEmail: editData.contactEmail,
+                discordWebhookUrl: editData.discordWebhookUrl
+            });
+            setOrganizer({ ...organizer, ...data });
+            setEditMode(false);
+            alert('Profile updated successfully!');
+        } catch (e) {
+            console.error(e);
+            alert(e.response?.data?.message || 'Error updating profile');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -140,19 +166,30 @@ const OrganizerProfile = () => {
     return (
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 20px 40px' }}>
 
-            {/* Back button */}
-            <button
-                onClick={() => navigate('/clubs')}
-                style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    fontSize: '0.85rem', fontWeight: 700, color: '#6b7280',
-                    marginBottom: '20px', padding: '8px 0'
-                }}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                Back to Clubs
-            </button>
+            {/* Header controls */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <button
+                    onClick={() => navigate('/clubs')}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        fontSize: '0.85rem', fontWeight: 700, color: '#6b7280',
+                        padding: '8px 0'
+                    }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Back to Clubs
+                </button>
+                {isOwnProfile && !editMode && (
+                    <button
+                        onClick={() => setEditMode(true)}
+                        className="btn-primary"
+                        style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem' }}
+                    >
+                        Edit Profile
+                    </button>
+                )}
+            </div>
 
             {/* Profile Card */}
             <div style={{
@@ -183,37 +220,92 @@ const OrganizerProfile = () => {
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
                         <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#111827', margin: 0 }}>
-                                    {organizer.organizerName}
-                                </h1>
-                                {organizer.isVerified && (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 800, color: '#2563eb', background: '#eff6ff', padding: '4px 10px', borderRadius: '8px' }}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="#2563eb"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-                                        Verified
-                                    </span>
-                                )}
-                            </div>
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
-                                {organizer.category && (
-                                    <span style={{
-                                        fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px',
-                                        padding: '4px 10px', borderRadius: '8px',
-                                        background: catStyle.bg, color: catStyle.text, border: `1.5px solid ${catStyle.border}`
-                                    }}>
-                                        {organizer.category}
-                                    </span>
-                                )}
-                                {organizer.contactEmail && (
-                                    <a href={`mailto:${organizer.contactEmail}`} style={{
-                                        fontSize: '0.75rem', fontWeight: 700, color: '#6b7280',
-                                        textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px'
-                                    }}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                                        {organizer.contactEmail}
-                                    </a>
-                                )}
-                            </div>
+                            {editMode ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', minWidth: '300px' }}>
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Organizer Name</label>
+                                        <input
+                                            type="text"
+                                            value={editData.organizerName || ''}
+                                            onChange={e => setEditData({ ...editData, organizerName: e.target.value })}
+                                            className="input"
+                                            style={{ marginTop: '4px' }}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Category</label>
+                                            <select
+                                                value={editData.category || ''}
+                                                onChange={e => setEditData({ ...editData, category: e.target.value })}
+                                                className="input"
+                                                style={{ marginTop: '4px' }}
+                                            >
+                                                <option value="">Select Category</option>
+                                                <option value="Technical">Technical</option>
+                                                <option value="Cultural">Cultural</option>
+                                                <option value="Sports">Sports</option>
+                                                <option value="Literary">Literary</option>
+                                                <option value="Social">Social</option>
+                                            </select>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Contact Email</label>
+                                            <input
+                                                type="email"
+                                                value={editData.contactEmail || ''}
+                                                onChange={e => setEditData({ ...editData, contactEmail: e.target.value })}
+                                                className="input"
+                                                style={{ marginTop: '4px' }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Login Email (Cannot be changed)</label>
+                                        <input
+                                            type="email"
+                                            value={user?.email || ''}
+                                            disabled
+                                            className="input"
+                                            style={{ marginTop: '4px', backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: '#9ca3af' }}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                        <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#111827', margin: 0 }}>
+                                            {organizer.organizerName}
+                                        </h1>
+                                        {organizer.isVerified && (
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 800, color: '#2563eb', background: '#eff6ff', padding: '4px 10px', borderRadius: '8px' }}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="#2563eb"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                                                Verified
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
+                                        {organizer.category && (
+                                            <span style={{
+                                                fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px',
+                                                padding: '4px 10px', borderRadius: '8px',
+                                                background: catStyle.bg, color: catStyle.text, border: `1.5px solid ${catStyle.border}`
+                                            }}>
+                                                {organizer.category}
+                                            </span>
+                                        )}
+                                        {organizer.contactEmail && (
+                                            <a href={`mailto:${organizer.contactEmail}`} style={{
+                                                fontSize: '0.75rem', fontWeight: 700, color: '#6b7280',
+                                                textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px'
+                                            }}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                                {organizer.contactEmail}
+                                            </a>
+                                        )}
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {/* Follow button */}
@@ -235,12 +327,56 @@ const OrganizerProfile = () => {
                         </button>
                     </div>
 
-                    {/* Description */}
-                    {organizer.description && (
-                        <p style={{ fontSize: '0.9rem', color: '#6b7280', lineHeight: 1.7, marginTop: '20px', marginBottom: 0 }}>
-                            {organizer.description}
-                        </p>
-                    )}
+                    <div style={{ marginTop: '20px' }}>
+                        {editMode ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Description</label>
+                                    <textarea
+                                        value={editData.description || ''}
+                                        onChange={e => setEditData({ ...editData, description: e.target.value })}
+                                        className="input"
+                                        rows={4}
+                                        style={{ marginTop: '4px', resize: 'vertical' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Discord Webhook URL (For Event Announcements)</label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://discord.com/api/webhooks/..."
+                                        value={editData.discordWebhookUrl || ''}
+                                        onChange={e => setEditData({ ...editData, discordWebhookUrl: e.target.value })}
+                                        className="input"
+                                        style={{ marginTop: '4px' }}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                                    <button
+                                        onClick={() => { setEditMode(false); setEditData(organizer); }}
+                                        style={{ padding: '10px 20px', borderRadius: '10px', background: '#f3f4f6', color: '#4b5563', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                                        disabled={saving}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSaveProfile}
+                                        className="btn-primary"
+                                        style={{ padding: '10px 24px', borderRadius: '10px' }}
+                                        disabled={saving}
+                                    >
+                                        {saving ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            organizer.description && (
+                                <p style={{ fontSize: '0.9rem', color: '#6b7280', lineHeight: 1.7, marginBottom: 0 }}>
+                                    {organizer.description}
+                                </p>
+                            )
+                        )}
+                    </div>
 
                     {/* Stats row */}
                     <div style={{ display: 'flex', gap: '24px', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #f3f4f6' }}>

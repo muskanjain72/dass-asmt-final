@@ -125,10 +125,10 @@ const updateUserProfile = async (req, res) => {
             } else if (user.role === 'organizer') {
                 // Organizer updates their profile here too
                 user.organizerName = req.body.organizerName || user.organizerName;
-                user.description = req.body.description || user.description;
-                user.category = req.body.category || user.category;
-                user.contactEmail = req.body.contactEmail || user.contactEmail;
-                user.discordWebhookUrl = req.body.discordWebhookUrl || user.discordWebhookUrl;
+                if (req.body.description !== undefined) user.description = req.body.description;
+                if (req.body.category !== undefined) user.category = req.body.category;
+                if (req.body.contactEmail !== undefined) user.contactEmail = req.body.contactEmail;
+                if (req.body.discordWebhookUrl !== undefined) user.discordWebhookUrl = req.body.discordWebhookUrl;
             }
 
             // Note: Email and Role are generally not editable here

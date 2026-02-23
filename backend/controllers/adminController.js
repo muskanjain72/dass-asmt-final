@@ -197,13 +197,53 @@ const handleResetRequest = async (req, res) => {
 
             user.password = newPassword;
             await user.save();
+
+            // Send Email to Organizer
+            const emailMessage = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                    <h2>Password Reset Approved</h2>
+                    <p>Hello <strong>${user.organizerName}</strong>,</p>
+                    <p>Your request to reset your password for the Felicity platform has been approved by the administrator.</p>
+                    <p>You can log in immediately using your system email and the new temporary password below:</p>
+                    <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>System Email (Login ID):</strong> ${user.email}</p>
+                        <p style="margin: 5px 0;"><strong>New Temporary Password:</strong> ${newPassword}</p>
+                    </div>
+                    <p><strong>Important:</strong> For security reasons, please log in and change your password from your dashboard immediately.</p>
+                    <p>Regards,<br/>Felicity Team</p>
+                </div>
+            `;
+
+            await sendEmail({
+                email: request.email, // Original contact email they requested from
+                subject: 'Your Organizer Account Password Reset - Felicity',
+                message: emailMessage
+            });
+        } else if (status === 'rejected') {
+            const organizerUser = await User.findOne({ email: request.email, role: 'organizer' });
+            // Send Rejection Email to Organizer
+            const emailMessage = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                    <h2>Password Reset Request Denied</h2>
+                    <p>Hello${organizerUser ? ' <strong>' + organizerUser.organizerName + '</strong>' : ''},</p>
+                    <p>Your recent request to reset the password for your Felicity platform organizer account has been <strong>rejected</strong> by the administration.</p>
+                    ${comments ? `<p><strong>Admin Note:</strong> ${comments}</p>` : ''}
+                    <p>If you believe this was an error, please reach out to the campus administration directly.</p>
+                    <p>Regards,<br/>Felicity Team</p>
+                </div>
+            `;
+
+            await sendEmail({
+                email: request.email,
+                subject: 'Password Reset Request Update - Felicity',
+                message: emailMessage
+            });
         }
 
         await request.save();
 
         res.json({
-            message: `Request ${status}`,
-            newPassword: newPassword
+            message: status === 'approved' ? 'Request approved and email sent to organizer' : 'Request rejected'
         });
 
     } catch (error) {

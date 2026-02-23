@@ -101,10 +101,12 @@ const EventDetails = () => {
     };
 
     return (
-        <div className="auth-page">
-            <div className="auth-card" style={{ maxWidth: '480px', width: '100%', alignItems: 'stretch' }}>
-
-                {/* Header Section */}
+        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px 60px' }}>
+            <div style={{
+                background: 'white', borderRadius: '24px', padding: '40px',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.08)', border: '1px solid #f3f4f6',
+                display: 'flex', flexDirection: 'column', alignItems: 'stretch'
+            }}>
                 <div className="text-center mb-8">
                     <span className={`inline-block px-3 py-1 mb-4 text-xs font-bold tracking-wider uppercase rounded-full ${event.type === 'normal' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
                         {event.type}

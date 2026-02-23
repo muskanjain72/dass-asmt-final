@@ -111,9 +111,6 @@ const AdminDashboard = () => {
         try {
             const { data } = await api.put(`/admin/reset-requests/${id}`, { status, comments });
             alert(data.message);
-            if (data.newPassword) {
-                window.prompt("Detailed Success! COPY THIS NEW PASSWORD NOW:", data.newPassword);
-            }
             fetchRequests();
         } catch (error) {
             alert(error.response?.data?.message || 'Action failed');

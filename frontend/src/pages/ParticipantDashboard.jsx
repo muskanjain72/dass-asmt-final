@@ -202,14 +202,23 @@ const ParticipantDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('Normal'); // Tabs: Normal, Merchandise, Completed, Cancelled
     const [selectedTicket, setSelectedTicket] = useState(null);
+    const [discoverEvents, setDiscoverEvents] = useState([]);
 
     useEffect(() => {
         const fetchTickets = async () => {
             try {
-                const { data } = await api.get('/tickets/my-tickets');
-                setTickets(data);
+                const [ticketsRes, eventsRes] = await Promise.all([
+                    api.get('/tickets/my-tickets'),
+                    api.get('/events')
+                ]);
+                setTickets(ticketsRes.data);
+
+                // Filter published upcoming events for the discover section
+                const now = new Date();
+                const upcoming = eventsRes.data.filter(e => e.status === 'published' && new Date(e.startDate) >= now);
+                setDiscoverEvents(upcoming.slice(0, 3));
             } catch (error) {
-                console.error("Error fetching tickets", error);
+                console.error("Error fetching data", error);
             } finally {
                 setLoading(false);
             }
@@ -284,20 +293,14 @@ const ParticipantDashboard = () => {
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
 
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div style={{ visibility: 'hidden', height: 0 }}>Dashboard</div>
-                <Link to="/events" className="btn btn-primary" style={{ background: 'var(--primary-gradient)' }}>
-                    Browse More Events
-                </Link>
-            </div>
+            {/* Header / Title removed based on user request */}
 
             {/* Upcoming Events Section */}
             <section>
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2">
                         <div className="w-1 h-8 bg-purple-600 rounded-full" style={{ background: 'var(--primary-gradient)' }}></div>
-                        <h2 className="section-title mb-0">Upcoming Events</h2>
+                        <h2 className="section-title mb-0">Your Registered Events</h2>
                     </div>
                     {upcomingTickets.length > 0 && (
                         <button
@@ -384,7 +387,7 @@ const ParticipantDashboard = () => {
                     </div>
                 ) : (
                     <div className="saas-card text-center py-12">
-                        <p className="text-gray-500">No upcoming events found. Time to explore!</p>
+                        <p className="text-gray-500">You haven't registered for any upcoming events yet. Time to explore!</p>
                         <Link to="/events" className="text-purple-600 font-bold mt-2 inline-block">Browse Events &rarr;</Link>
                     </div>
                 )}
@@ -464,6 +467,57 @@ const ParticipantDashboard = () => {
                     </div>
                 </div>
             </section>
+
+            {/* Discover More Events Section */}
+            {discoverEvents.length > 0 && (
+                <section>
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1 h-8 bg-purple-600 rounded-full" style={{ background: 'var(--primary-gradient)' }}></div>
+                            <h2 className="section-title mb-0">Discover Events</h2>
+                        </div>
+                        <Link to="/events" className="text-sm font-bold text-purple-600 hover:text-purple-700 flex items-center gap-1">
+                            Browse All &rarr;
+                        </Link>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {discoverEvents.map(event => {
+                            const isMerch = event.type === 'merchandise';
+                            return (
+                                <div
+                                    key={event._id}
+                                    onClick={() => window.location.href = `/events/${event._id}`}
+                                    style={{
+                                        background: 'white', borderRadius: '20px', padding: '24px', cursor: 'pointer',
+                                        display: 'flex', flexDirection: 'column', gap: '16px', border: '1px solid #f3f4f6',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        position: 'relative', overflow: 'hidden', borderLeft: isMerch ? '4px solid #10b981' : '4px solid transparent'
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.12)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)'; }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span className={`badge ${isMerch ? 'badge-green' : 'badge-blue'}`} style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                            {isMerch ? '🛍 Merch' : '🎟 Event'}
+                                        </span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 900, color: event.registrationFee === 0 ? '#10b981' : '#6d28d9', background: event.registrationFee === 0 ? '#ecfdf5' : '#f5f3ff', padding: '4px 10px', borderRadius: '8px' }}>
+                                            {event.registrationFee === 0 ? 'FREE' : `₹${event.registrationFee}`}
+                                        </span>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#111827', margin: 0, lineHeight: 1.3 }}>{event.name}</h4>
+                                        <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '6px 0 0 0', fontWeight: 600 }}>by {event.organizer?.organizerName || 'Unknown'}</p>
+                                        <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            📅 {event.startDate ? new Date(event.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
 
             {/* Ticket Modal */}
             {selectedTicket && (

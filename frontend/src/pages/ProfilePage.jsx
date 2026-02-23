@@ -136,13 +136,16 @@ const ProfilePage = () => {
         }
     };
 
-    if (!user) return <div className="auth-page"><div className="auth-card">Please login to view profile.</div></div>;
+    if (!user) return <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 20px', textAlign: 'center' }}><div style={{ background: 'white', borderRadius: '24px', padding: '40px', boxShadow: '0 10px 40px rgba(0,0,0,0.08)' }}>Please login to view profile.</div></div>;
 
     const isParticipant = user.role === 'participant';
 
     return (
-        <div className="auth-page">
-            <div className="auth-card" style={{ maxWidth: '600px', width: '100%' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px 60px' }}>
+            <div style={{
+                background: 'white', borderRadius: '24px', padding: '40px',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.08)', border: '1px solid #f3f4f6'
+            }}>
                 <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
                     <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>Profile</h1>
                     <p style={{ color: '#6b7280', marginTop: '0.5rem' }}>Manage your account settings</p>
@@ -277,6 +280,26 @@ const ProfilePage = () => {
                                             {interest}
                                         </button>
                                     ))}
+                                </div>
+                                {/* Add custom interest */}
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Add custom interest..."
+                                        value={newInterest}
+                                        onChange={e => setNewInterest(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddInterest())}
+                                        className="input"
+                                        style={{ flex: 1, padding: '8px 14px', fontSize: '0.85rem' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleAddInterest}
+                                        className="btn-primary"
+                                        style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '0.85rem' }}
+                                    >
+                                        Add
+                                    </button>
                                 </div>
                             </div>
 
