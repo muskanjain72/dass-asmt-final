@@ -59,8 +59,13 @@ const CreateEvent = () => {
     const fetchEventToEdit = async (id) => {
         try {
             const { data } = await api.get(`/events/${id}`);
-            // Format dates for input[type="datetime-local"]
-            const formatDate = (date) => date ? new Date(date).toISOString().slice(0, 16) : '';
+            // Format dates for input[type="datetime-local"] preserving local timezone
+            const formatDate = (dateString) => {
+                if (!dateString) return '';
+                const date = new Date(dateString);
+                const tzOffset = date.getTimezoneOffset() * 60000;
+                return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+            };
             setFormData({
                 ...data,
                 registrationDeadline: formatDate(data.registrationDeadline),
@@ -103,12 +108,20 @@ const CreateEvent = () => {
         e.preventDefault();
         setSubmitting(true);
         try {
+            // Append explicit full ISO string conversion so backend handles it neutrally in UTC
+            const payload = {
+                ...formData,
+                registrationDeadline: formData.registrationDeadline ? new Date(formData.registrationDeadline).toISOString() : null,
+                startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+                endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+            };
+
             if (editMode && formData._id) {
-                await api.put(`/events/${formData._id}`, formData);
+                await api.put(`/events/${formData._id}`, payload);
                 alert('Event Updated Successfully!');
                 navigate(`/organizer/event/${formData._id}`);
             } else {
-                await api.post('/events', formData);
+                await api.post('/events', payload);
                 alert('Event Draft Created Successfully!');
                 navigate('/organizer/dashboard');
             }

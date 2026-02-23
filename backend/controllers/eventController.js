@@ -277,14 +277,14 @@ const updateEvent = async (req, res) => {
             if (name && name !== event.name) illegalEdits.push('name');
 
             if (startDate) {
-                const newDate = new Date(startDate).getTime();
-                const oldDate = new Date(event.startDate).getTime();
-                if (newDate !== oldDate) illegalEdits.push('startDate');
+                const newTime = new Date(startDate).setSeconds(0, 0);
+                const oldTime = new Date(event.startDate).setSeconds(0, 0);
+                if (newTime !== oldTime) illegalEdits.push('startDate');
             }
             if (endDate) {
-                const newDate = new Date(endDate).getTime();
-                const oldDate = new Date(event.endDate).getTime();
-                if (newDate !== oldDate) illegalEdits.push('endDate');
+                const newTime = new Date(endDate).setSeconds(0, 0);
+                const oldTime = new Date(event.endDate).setSeconds(0, 0);
+                if (newTime !== oldTime) illegalEdits.push('endDate');
             }
             if (registrationFee !== undefined && Number(registrationFee) !== Number(event.registrationFee)) {
                 illegalEdits.push('registrationFee');
