@@ -141,12 +141,68 @@ const TicketModal = ({ ticket, onClose }) => {
                 {/* Footer */}
                 <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 flex flex-col gap-4">
                     <div className="flex gap-4">
-                        <button
-                            onClick={() => window.print()}
-                            className="flex-1 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-sm"
-                        >
-                            Print Ticket
-                        </button>
+                        {/* Only show Print Ticket for approved/registered/attended tickets */}
+                        {['Approved', 'Successful', 'registered', 'attended'].includes(ticket.status) && (
+                            <button
+                                onClick={() => {
+                                    const printWindow = window.open('', '_blank', 'width=500,height=700');
+                                    printWindow.document.write(`
+                                        <!DOCTYPE html>
+                                        <html>
+                                        <head>
+                                            <title>Ticket - ${event?.name || 'Event'}</title>
+                                            <style>
+                                                body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f9fafb; }
+                                                .ticket { max-width: 420px; margin: 0 auto; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+                                                .header { background: linear-gradient(135deg, #6d28d9, #7c3aed); padding: 24px; text-align: center; color: white; }
+                                                .header h2 { margin: 0; font-size: 1.3rem; }
+                                                .header p { margin: 6px 0 0; font-size: 0.85rem; opacity: 0.85; }
+                                                .body { background: white; padding: 24px; }
+                                                .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 0.9rem; }
+                                                .row:last-child { border-bottom: none; }
+                                                .label { color: #9ca3af; font-weight: bold; text-transform: uppercase; font-size: 0.75rem; }
+                                                .value { color: #111827; font-weight: 600; }
+                                                .qr-section { text-align: center; padding: 20px; background: #f5f3ff; border-radius: 12px; margin-top: 16px; border: 2px dashed #c4b5fd; }
+                                                .qr-section p { color: #6d28d9; font-weight: bold; font-size: 0.8rem; margin: 0 0 12px; }
+                                                .qr-section img { width: 180px; height: 180px; }
+                                                .footer { text-align: center; padding: 12px; font-size: 0.7rem; color: #9ca3af; }
+                                                @media print { body { background: white; } .ticket { box-shadow: none; } }
+                                            </style>
+                                        </head>
+                                        <body>
+                                            <div class="ticket">
+                                                <div class="header">
+                                                    <h2>${event?.name || 'Event Ticket'}</h2>
+                                                    <p>${event?.organizer?.organizerName || ''}</p>
+                                                </div>
+                                                <div class="body">
+                                                    <div class="row"><span class="label">Ticket ID</span><span class="value" style="font-family:monospace">#${ticket.ticketId}</span></div>
+                                                    <div class="row"><span class="label">Type</span><span class="value">${isMerch ? 'Merchandise' : 'Normal Event'}</span></div>
+                                                    <div class="row"><span class="label">Date</span><span class="value">${event?.startDate ? new Date(event.startDate).toLocaleDateString() : 'N/A'}</span></div>
+                                                    <div class="row"><span class="label">Fee</span><span class="value" style="color:#059669">${event?.registrationFee ? '₹' + event.registrationFee : 'Free'}</span></div>
+                                                    <div class="row"><span class="label">Status</span><span class="value" style="color:#059669">✓ ${ticket.status}</span></div>
+                                                    ${ticket.qrCodeData ? `
+                                                    <div class="qr-section">
+                                                        <p>SCAN FOR VERIFICATION</p>
+                                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(ticket.qrCodeData)}" alt="QR Code" />
+                                                        <p style="font-size:0.7rem;color:#9ca3af;margin:12px 0 0">${ticket.ticketId}</p>
+                                                    </div>` : ''}
+                                                </div>
+                                                <div class="footer">Present this ticket at the event • Non-transferable</div>
+                                            </div>
+                                        </body>
+                                        </html>
+                                    `);
+                                    printWindow.document.close();
+                                    printWindow.onload = () => {
+                                        printWindow.print();
+                                    };
+                                }}
+                                className="flex-1 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-sm"
+                            >
+                                Print Ticket
+                            </button>
+                        )}
                         <button
                             onClick={onClose}
                             className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm"

@@ -394,6 +394,19 @@ const getMyEvents = async (req, res) => {
             ]
         }).sort({ createdAt: -1 });
 
+        const now = new Date();
+
+        // Auto-close events whose endDate has passed
+        await Promise.all(events.map(async (event) => {
+            if (
+                ['published', 'ongoing'].includes(event.status) &&
+                event.endDate && new Date(event.endDate) < now
+            ) {
+                event.status = 'closed';
+                await event.save();
+            }
+        }));
+
         // Add attendance and enriched status
         const enrichedEvents = await Promise.all(events.map(async (event) => {
             const attendanceCount = await Ticket.countDocuments({
@@ -401,8 +414,6 @@ const getMyEvents = async (req, res) => {
                 scannedAt: { $exists: true }
             });
 
-            // Determine dynamic status for UI if needed (though UI handles it)
-            // But we mainly need attendanceCount
             return {
                 ...event.toObject(),
                 attendanceCount

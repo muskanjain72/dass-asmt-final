@@ -263,53 +263,60 @@ const OrganizerDashboard = () => {
                 </>
             )}
 
-            {activeTab === 'ongoing' && (
-                <div>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '16px' }}>Ongoing Events</h2>
-                    {events.filter(e => e.status === 'published' || e.status === 'ongoing').length > 0 ? (
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {events.filter(e => e.status === 'published' || e.status === 'ongoing').map((event) => (
-                                <div key={event._id}
-                                    className="saas-card hover:shadow-lg transition-shadow cursor-pointer"
-                                    onClick={() => navigate(`/organizer/event/${event._id}`)}
-                                    style={{
-                                        padding: '24px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '12px'
-                                    }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <span className={`badge ${event.status === 'published' ? 'badge-green' : 'badge-blue'}`} style={{ fontSize: '0.7rem' }}>
-                                            {event.status}
-                                        </span>
-                                        <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase' }}>{event.type}</span>
-                                    </div>
-                                    <div>
-                                        <h4 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>{event.name}</h4>
-                                        <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '4px 0 0 0' }}>
-                                            {new Date(event.startDate).toLocaleDateString()}
-                                        </p>
-                                    </div>
-
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '16px', marginTop: 'auto' }}>
+            {activeTab === 'ongoing' && (() => {
+                const now = new Date();
+                const ongoingEvents = events.filter(e =>
+                    (e.status === 'published' || e.status === 'ongoing') &&
+                    (!e.endDate || new Date(e.endDate) >= now)
+                );
+                return (
+                    <div>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '16px' }}>Ongoing Events</h2>
+                        {ongoingEvents.length > 0 ? (
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                {ongoingEvents.map((event) => (
+                                    <div key={event._id}
+                                        className="saas-card hover:shadow-lg transition-shadow cursor-pointer"
+                                        onClick={() => navigate(`/organizer/event/${event._id}`)}
+                                        style={{
+                                            padding: '24px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '12px'
+                                        }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                            <span className={`badge ${event.status === 'published' ? 'badge-green' : 'badge-blue'}`} style={{ fontSize: '0.7rem' }}>
+                                                {event.status}
+                                            </span>
+                                            <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase' }}>{event.type}</span>
+                                        </div>
                                         <div>
-                                            <p style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>Registrations</p>
-                                            <p style={{ fontSize: '1.125rem', fontWeight: 'bold', margin: '2px 0 0 0', color: '#111827' }}>{event.registeredCount}</p>
+                                            <h4 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>{event.name}</h4>
+                                            <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '4px 0 0 0' }}>
+                                                {new Date(event.startDate).toLocaleDateString()}
+                                            </p>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <span className="link" style={{ color: '#6d28d9', fontWeight: '800' }}>Manage</span>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #f3f4f6', paddingTop: '16px', marginTop: 'auto' }}>
+                                            <div>
+                                                <p style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>Registrations</p>
+                                                <p style={{ fontSize: '1.125rem', fontWeight: 'bold', margin: '2px 0 0 0', color: '#111827' }}>{event.registeredCount}</p>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                <span className="link" style={{ color: '#6d28d9', fontWeight: '800' }}>Manage</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="saas-card" style={{ padding: '60px', textAlign: 'center', backgroundColor: '#f9fafb', border: '1px dashed #e5e7eb' }}>
-                            <p style={{ color: '#6b7280', fontWeight: 'bold' }}>No ongoing events at the moment.</p>
-                        </div>
-                    )}
-                </div>
-            )}
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="saas-card" style={{ padding: '60px', textAlign: 'center', backgroundColor: '#f9fafb', border: '1px dashed #e5e7eb' }}>
+                                <p style={{ color: '#6b7280', fontWeight: 'bold' }}>No ongoing events at the moment.</p>
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
             {activeTab === 'verifications' && (
                 <div>
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '16px' }}>Pending Payment Verifications</h2>
@@ -342,7 +349,7 @@ const OrganizerDashboard = () => {
                                                 <td className="font-bold text-green-600">₹{ticket.eventId?.registrationFee}</td>
                                                 <td>
                                                     {ticket.paymentProof ? (
-                                                        <a href={`${import.meta.env.VITE_API_URL}${ticket.paymentProof}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm flex items-center gap-1">
+                                                        <a href={ticket.paymentProof} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm flex items-center gap-1">
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                                                             View Proof
                                                         </a>

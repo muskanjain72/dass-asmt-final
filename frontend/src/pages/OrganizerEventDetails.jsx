@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/axios';
 import QRScanner from './QRScanner';
+import Forum from '../components/Forum';
+import { useAuth } from '../context/AuthContext';
 
 const OrganizerEventDetails = () => {
     const { id } = useParams();
+    const { user } = useAuth();
     const [event, setEvent] = useState(null);
     const [stats, setStats] = useState(null);
     const [participants, setParticipants] = useState([]);
@@ -190,7 +193,7 @@ const OrganizerEventDetails = () => {
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: '32px', marginBottom: '32px', borderBottom: '1px solid #e5e7eb', overflowX: 'auto', whiteSpace: 'nowrap' }}>
-                {['overview', 'analytics', 'participants', 'registrations', 'scanner'].map((tab) => (
+                {['overview', 'analytics', 'participants', 'registrations', 'scanner', 'discussion'].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -783,6 +786,19 @@ const OrganizerEventDetails = () => {
                         </div>
                     );
                 })()}
+
+                {/* ─── DISCUSSION TAB ─────────────────────────────────────── */}
+                {activeTab === 'discussion' && user && (
+                    <div style={{ padding: '32px' }}>
+                        <h3 className="section-title" style={{ marginBottom: '16px' }}>Event Discussion Forum</h3>
+                        <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '20px' }}>
+                            Moderate the discussion — pin important messages 📌, delete inappropriate ones 🗑, and post announcements 📢.
+                        </p>
+                        <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1.5px solid #e5e7eb' }}>
+                            <Forum eventId={id} user={user} isRegistered={true} />
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* ─── Review Modal ──────────────────────────────────────────────── */}
