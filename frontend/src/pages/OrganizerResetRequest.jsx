@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api/axios';
 
 const OrganizerResetRequest = () => {
@@ -39,128 +40,115 @@ const OrganizerResetRequest = () => {
         }
     };
 
-    const getStatusBadge = (s) => {
-        switch (s) {
-            case 'approved': return 'bg-green-100 text-green-800';
-            case 'rejected': return 'bg-red-100 text-red-800';
-            default: return 'bg-blue-100 text-blue-800';
-        }
-    };
-
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    Organizer Account Recovery
-                </h2>
-                <div className="mt-4 flex justify-center gap-4">
-                    <button
-                        onClick={() => { setMode('request'); setStatus({ type: '', msg: '' }); }}
-                        className={`px-4 py-2 text-sm font-medium rounded-md ${mode === 'request' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        New Request
-                    </button>
-                    <button
-                        onClick={() => { setMode('status'); setStatus({ type: '', msg: '' }); }}
-                        className={`px-4 py-2 text-sm font-medium rounded-md ${mode === 'status' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Track Status
-                    </button>
-                </div>
-            </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 flex justify-center">
+            <div className="w-full max-w-lg">
+                <header className="text-center mb-10">
+                    <h1 className="dashboard-title">Account Recovery</h1>
+                    <p className="dashboard-subtitle">Request a password reset or track your request status</p>
+                </header>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                    {status.msg && mode === 'request' && (
-                        <div className={`mb-4 p-2 rounded text-sm ${status.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {status.msg}
-                        </div>
-                    )}
-
-                    {mode === 'request' ? (
-                        <form className="space-y-6" onSubmit={handleSubmit}>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Account Email</label>
-                                <input
-                                    type="email"
-                                    required
-                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Organizer / Club Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                    value={formData.organizerName}
-                                    onChange={(e) => setFormData({ ...formData, organizerName: e.target.value })}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Reason for Reset</label>
-                                <textarea
-                                    required
-                                    rows={3}
-                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                    value={formData.reason}
-                                    onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                                />
-                            </div>
-
-                            <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
-                                Submit Request
+                <div className="saas-card !p-0 overflow-hidden">
+                    {/* Minimal Tabs */}
+                    <div className="border-b border-gray-100 px-8 pt-4 flex gap-8">
+                        {['request', 'status'].map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => { setMode(tab); setStatus({ type: '', msg: '' }); }}
+                                className={`pb-4 text-sm font-bold transition-all relative ${mode === tab ? 'text-purple-600' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                {tab === 'request' ? 'New Request' : 'Track Status'}
+                                {mode === tab && (
+                                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-600"></span>
+                                )}
                             </button>
-                        </form>
-                    ) : (
-                        <div className="space-y-6">
-                            <form onSubmit={checkStatus} className="flex gap-2">
-                                <input
-                                    type="email"
-                                    required
-                                    placeholder="Enter your email"
-                                    className="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 sm:text-sm"
-                                    value={statusEmail}
-                                    onChange={(e) => setStatusEmail(e.target.value)}
-                                />
-                                <button type="submit" disabled={searching} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium">
-                                    {searching ? '...' : 'Track'}
+                        ))}
+                    </div>
+
+                    <div className="p-8">
+                        {status.msg && mode === 'request' && (
+                            <div className={`mb-6 p-4 rounded-xl text-sm font-medium ${status.type === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                                {status.msg}
+                            </div>
+                        )}
+
+                        {mode === 'request' ? (
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                <div>
+                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Registered Email</label>
+                                    <input
+                                        className="input" type="email" required placeholder="Enter your login or contact email"
+                                        value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Organizer / Club Name</label>
+                                    <input
+                                        className="input" type="text" required placeholder="e.g. Photography Club"
+                                        value={formData.organizerName} onChange={e => setFormData({ ...formData, organizerName: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Reason for recovery</label>
+                                    <textarea
+                                        className="input min-h-[100px]" required placeholder="Please provide details to help admin verify your identity"
+                                        value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })}
+                                    />
+                                </div>
+                                <button type="submit" className="btn-primary btn-block py-4">
+                                    Submit Recovery Request
                                 </button>
                             </form>
+                        ) : (
+                            <div className="space-y-8">
+                                <form onSubmit={checkStatus} className="flex gap-3">
+                                    <input
+                                        className="input flex-1" type="email" required placeholder="Enter your email to track"
+                                        value={statusEmail} onChange={e => setStatusEmail(e.target.value)}
+                                    />
+                                    <button type="submit" disabled={searching} className="btn-primary px-8">
+                                        {searching ? '...' : 'Find'}
+                                    </button>
+                                </form>
 
-                            {status.msg && mode === 'status' && (
-                                <p className="text-center text-sm text-red-500">{status.msg}</p>
-                            )}
+                                {status.msg && mode === 'status' && (
+                                    <p className="text-center text-sm font-medium text-red-500">{status.msg}</p>
+                                )}
 
-                            <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                                {history.map((req) => (
-                                    <div key={req._id} className="border border-gray-100 p-4 rounded-lg bg-gray-50">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full uppercase ${getStatusBadge(req.status)}`}>
-                                                {req.status}
-                                            </span>
-                                            <span className="text-[10px] text-gray-400">
-                                                {new Date(req.createdAt).toLocaleDateString()}
-                                            </span>
-                                        </div>
-                                        <p className="text-sm font-medium text-gray-800 mb-1">{req.reason}</p>
-                                        {req.adminResponse && (
-                                            <div className="mt-3 bg-white p-2 rounded border border-indigo-50 text-xs">
-                                                <p className="font-bold text-indigo-600 mb-1">Admin Response:</p>
-                                                <p className="text-gray-600 italic">"{req.adminResponse}"</p>
+                                <div className="space-y-4">
+                                    {history.map((req) => (
+                                        <div key={req._id} className="p-5 rounded-2xl border border-gray-100 bg-gray-50/50">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className={`badge ${req.status === 'approved' ? 'badge-green' : req.status === 'rejected' ? 'badge-red' : 'badge-blue'} !text-[10px]`}>
+                                                    {req.status}
+                                                </span>
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+                                                    {new Date(req.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                                                </span>
                                             </div>
-                                        )}
-                                    </div>
-                                ))}
+                                            <p className="text-sm font-semibold text-gray-800 leading-relaxed mb-3">{req.reason}</p>
+                                            {req.adminResponse && (
+                                                <div className="p-3 rounded-xl bg-white border border-purple-100">
+                                                    <p className="text-[10px] font-black text-purple-600 uppercase mb-1">Admin Response</p>
+                                                    <p className="text-xs text-gray-600 italic">"{req.adminResponse}"</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {history.length === 0 && !searching && !status.msg && (
+                                        <div className="py-12 text-center">
+                                            <p className="text-sm text-gray-400 font-medium">Enter your email above to see the status of your requests.</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+                        )}
+
+                        <div className="mt-10 pt-6 border-t border-gray-50 text-center">
+                            <Link to="/login" className="text-sm font-black text-purple-600 hover:text-purple-700 uppercase tracking-widest">
+                                Back to Login
+                            </Link>
                         </div>
-                    )}
-                    <div className="mt-6 text-center">
-                        <a href="/login" className="text-sm text-indigo-600 hover:text-indigo-500">Back to Login</a>
                     </div>
                 </div>
             </div>

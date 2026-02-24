@@ -126,7 +126,7 @@ const AuthCard = ({ initialTab = 'login' }) => {
               <input
                 className="input"
                 type="text"
-                placeholder="Username or Email"
+                placeholder="Email Address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

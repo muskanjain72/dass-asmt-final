@@ -187,7 +187,11 @@ const handleResetRequest = async (req, res) => {
         let newPassword = null;
 
         if (status === 'approved') {
-            const user = await User.findOne({ email: request.email, role: 'organizer' });
+            // Find user by system email OR contact email provided in request
+            const user = await User.findOne({
+                $or: [{ email: request.email }, { contactEmail: request.email }],
+                role: 'organizer'
+            });
             if (!user) {
                 return res.status(404).json({ message: 'Organizer user account not found for this email' });
             }
@@ -220,7 +224,10 @@ const handleResetRequest = async (req, res) => {
                 message: emailMessage
             });
         } else if (status === 'rejected') {
-            const organizerUser = await User.findOne({ email: request.email, role: 'organizer' });
+            const organizerUser = await User.findOne({
+                $or: [{ email: request.email }, { contactEmail: request.email }],
+                role: 'organizer'
+            });
             // Send Rejection Email to Organizer
             const emailMessage = `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">

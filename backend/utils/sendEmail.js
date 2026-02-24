@@ -11,7 +11,7 @@ const sendEmail = async (options) => {
         });
 
         const mailOptions = {
-            from: `"Evently" <${process.env.EMAIL_USER}>`,
+            from: `"Felicity Team" <${process.env.EMAIL_USER}>`,
             to: options.email,
             subject: options.subject,
             html: options.message,

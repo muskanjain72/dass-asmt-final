@@ -118,8 +118,11 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {/* Removed Heading and Tab Buttons as per request */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+            <header className="mb-10 text-center">
+                <h1 className="dashboard-title">System Administration</h1>
+                <p className="dashboard-subtitle">Manage organizer accounts and handle system-wide recovery requests</p>
+            </header>
 
             {activeTab === 'dashboard' ? (
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -134,8 +137,8 @@ const AdminDashboard = () => {
                         </div>
 
                         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>Add New Club / Organizer</h2>
-                            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>Create a new organizational account for managing events.</p>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827' }}>Launch New Organizer</h2>
+                            <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '4px' }}>Configure credentials for a new organizational unit</p>
                         </div>
 
                         <form onSubmit={handleCreate} className="auth-form" style={{ width: '100%' }}>
@@ -178,8 +181,8 @@ const AdminDashboard = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={creating} className="btn-primary btn-block" style={{ marginTop: '24px' }}>
-                                {creating ? 'Creating...' : 'Create Organizer Account'}
+                            <button type="submit" disabled={creating} className="btn-primary btn-block py-4" style={{ marginTop: '24px' }}>
+                                {creating ? 'Creating...' : 'Initialize Account'}
                             </button>
                         </form>
 
@@ -217,10 +220,10 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             ) : activeTab === 'clubs' ? (
-                <div className="saas-card" style={{ padding: 0, overflow: 'hidden' }}>
-                    <div style={{ padding: '32px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb' }}>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>Manage Organizers</h2>
-                        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>Active and deactivated organizational accounts.</p>
+                <div className="saas-card !p-0 overflow-hidden">
+                    <div style={{ padding: '32px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb/30' }}>
+                        <h2 style={{ fontSize: '1.1rem', fontWeight: '900', color: '#111827', textTransform: 'uppercase', letterSpacing: '1px' }}>Active Organizers</h2>
+                        <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>Overview of all registered clubs and organizational entities</p>
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                         <table className="saas-table" style={{ border: 'none' }}>
@@ -288,14 +291,14 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             ) : (
-                <div className="saas-card" style={{ padding: 0, overflow: 'hidden' }}>
-                    <div style={{ padding: '32px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="saas-card !p-0 overflow-hidden">
+                    <div style={{ padding: '32px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb/30', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>Password Reset Requests</h2>
-                            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>Review and handle organizer account recovery requests.</p>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: '900', color: '#111827', textTransform: 'uppercase', letterSpacing: '1px' }}>Recovery Requests</h2>
+                            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>Administrative oversight for account access restoration</p>
                         </div>
-                        <div style={{ fontSize: '0.875rem', color: '#4b5563', fontWeight: 'bold', backgroundColor: 'white', padding: '8px 16px', borderRadius: '16px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                            Pending: {requests.filter(r => r.status === 'pending').length}
+                        <div style={{ fontSize: '0.75rem', color: '#6d28d9', fontWeight: '900', backgroundColor: '#f5f3ff', padding: '6px 14px', borderRadius: '20px', border: '1px solid #e9d5ff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {requests.filter(r => r.status === 'pending').length} Action Required
                         </div>
                     </div>
 
@@ -343,20 +346,20 @@ const AdminDashboard = () => {
                                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                     <button
                                                         onClick={() => handleRequestAction(req._id, 'approved')}
-                                                        style={{ padding: '8px 16px', backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #dcfce7', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
+                                                        className="badge badge-green hover:opacity-80 transition-opacity !px-4 !py-2 border-none cursor-pointer text-[10px] font-black uppercase tracking-widest"
                                                     >
                                                         Approve
                                                     </button>
                                                     <button
                                                         onClick={() => handleRequestAction(req._id, 'rejected')}
-                                                        style={{ padding: '8px 16px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fee2e2', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}
+                                                        className="badge badge-red hover:opacity-80 transition-opacity !px-4 !py-2 border-none cursor-pointer text-[10px] font-black uppercase tracking-widest"
                                                     >
                                                         Reject
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', color: '#9ca3af', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', color: '#9ca3af', fontSize: '10px', fontWeight: '900', letterSpacing: '1px' }}>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#10b981' }}><polyline points="20 6 9 17 4 12"></polyline></svg>
                                                     RESOLVED
                                                 </div>
                                             )}

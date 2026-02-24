@@ -13,8 +13,11 @@ router.post('/reset-request', async (req, res) => {
     try {
         const { email, organizerName, reason } = req.body;
 
-        // Check if organizer exists
-        const user = await User.findOne({ email, role: 'organizer' });
+        // Check if organizer exists by login email OR contact email
+        const user = await User.findOne({
+            $or: [{ email: email }, { contactEmail: email }],
+            role: 'organizer'
+        });
         if (!user) {
             return res.status(404).json({ message: 'Organizer account not found for this email' });
         }

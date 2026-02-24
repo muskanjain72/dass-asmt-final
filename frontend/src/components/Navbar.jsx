@@ -36,9 +36,6 @@ const Navbar = () => {
                                         <Link to="/organizer/dashboard?tab=dashboard" className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}>Dashboard</Link>
                                         <Link to="/organizer/create-event" className={`nav-link ${location.pathname === '/organizer/create-event' ? 'active' : ''}`}>Create Event</Link>
                                         <Link to="/organizer/dashboard?tab=ongoing" className={`nav-link ${activeTab === 'ongoing' ? 'active' : ''}`}>Ongoing Events</Link>
-                                        <Link to="/organizer/dashboard?tab=verifications" className={`nav-link ${activeTab === 'verifications' ? 'active' : ''}`}>Verifications</Link>
-                                        <Link to="/profile" className="nav-link">Profile</Link>
-                                        <button onClick={handleLogout} className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}>Logout</button>
                                     </>
                                 )}
                                 {user.role === 'admin' && (
@@ -48,21 +45,17 @@ const Navbar = () => {
                                         <Link to="/admin/dashboard?tab=password-requests" className="nav-link">Password Reset Requests</Link>
                                     </>
                                 )}
+                                <Link to="/profile" className="nav-link">Profile</Link>
+                                <button onClick={handleLogout} className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: '0' }}>Logout</button>
                             </>
                         ) : (
                             <>
                                 <Link to="/events" className="nav-link">Browse Events</Link>
                                 <Link to="/clubs" className="nav-link">Clubs</Link>
+                                <Link to="/login" className="nav-link">Login</Link>
                             </>
                         )}
                     </div>
-
-                    {user && user.role !== 'organizer' && (
-                        <div className="user-controls">
-                            {user.role !== 'admin' && <Link to="/profile" className="btn btn-primary">Profile</Link>}
-                            <button onClick={handleLogout} className="btn btn-primary">Logout</button>
-                        </div>
-                    )}
                 </div>
             </div>
         </nav>

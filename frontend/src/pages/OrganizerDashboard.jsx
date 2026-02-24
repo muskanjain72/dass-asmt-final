@@ -111,49 +111,38 @@ const OrganizerDashboard = () => {
     });
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+
 
             {activeTab === 'dashboard' && (
                 <>
                     {/* Stats Grid - Unchanged */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                         <div className="saas-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <div style={{ backgroundColor: '#eff6ff', color: '#2563eb', padding: '10px', borderRadius: '10px' }}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                            </div>
                             <div>
-                                <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', margin: 0 }}>Total Events</p>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: '2px 0 0 0' }}>{events.length}</h3>
+                                <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Events</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: '2px 0 0 0' }}>{events.length}</h3>
                             </div>
                         </div>
 
-                        <div className="saas-card" style={{ padding: '20px', borderLeft: '4px solid #f59e0b', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <div style={{ backgroundColor: '#fff7ed', color: '#ea580c', padding: '10px', borderRadius: '10px' }}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                            </div>
+                        <div className="saas-card" style={{ padding: '20px', borderLeft: '3px solid #f59e0b', display: 'flex', alignItems: 'center', gap: '16px' }}>
                             <div>
-                                <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', margin: 0 }}>Drafts</p>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#ea580c', margin: '2px 0 0 0' }}>{draftsCount}</h3>
+                                <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Drafts</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ea580c', margin: '2px 0 0 0' }}>{draftsCount}</h3>
                             </div>
                         </div>
 
                         <div className="saas-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <div style={{ backgroundColor: '#f0fdf4', color: '#16a34a', padding: '10px', borderRadius: '10px' }}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-                            </div>
                             <div>
-                                <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', margin: 0 }}>Registrations</p>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: '2px 0 0 0' }}>{totalRegistrations}</h3>
+                                <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Registrations</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: '2px 0 0 0' }}>{totalRegistrations}</h3>
                             </div>
                         </div>
 
                         <div className="saas-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <div style={{ backgroundColor: '#fdf2f8', color: '#db2777', padding: '10px', borderRadius: '10px' }}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                            </div>
                             <div>
-                                <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', margin: 0 }}>Revenue</p>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: '2px 0 0 0' }}>₹{totalRevenue.toLocaleString()}</h3>
+                                <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#6b7280', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Revenue</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: '2px 0 0 0' }}>₹{totalRevenue.toLocaleString()}</h3>
                             </div>
                         </div>
                     </div>
@@ -175,7 +164,7 @@ const OrganizerDashboard = () => {
                                             display: 'flex',
                                             flexDirection: 'column',
                                             gap: '12px',
-                                            borderLeft: event.status === 'draft' ? '6px solid #f59e0b' : '1px solid #e5e7eb'
+                                            borderLeft: event.status === 'draft' ? '3px solid #f59e0b' : '1px solid #e5e7eb'
                                         }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <span className={`badge ${event.status === 'published' ? 'badge-green' : event.status === 'draft' ? 'badge-orange' : event.status === 'ongoing' ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: '0.7rem' }}>
@@ -213,9 +202,6 @@ const OrganizerDashboard = () => {
                             </Carousel>
                         ) : (
                             <div className="saas-card" style={{ padding: '60px', textAlign: 'center', backgroundColor: '#f9fafb', border: '1px dashed #e5e7eb' }}>
-                                <div style={{ color: '#9ca3af', marginBottom: '16px' }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
-                                </div>
                                 <p style={{ color: '#6b7280', fontWeight: 'bold' }}>No events created yet.</p>
                                 <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Your event dashboard will come alive once you create your first listing.</p>
                             </div>
@@ -349,8 +335,7 @@ const OrganizerDashboard = () => {
                                                 <td className="font-bold text-green-600">₹{ticket.eventId?.registrationFee}</td>
                                                 <td>
                                                     {ticket.paymentProof ? (
-                                                        <a href={ticket.paymentProof} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm flex items-center gap-1">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                                                        <a href={ticket.paymentProof} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline text-sm font-medium">
                                                             View Proof
                                                         </a>
                                                     ) : (
