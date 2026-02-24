@@ -435,17 +435,21 @@ const OrganizerEventDetails = () => {
 
                 {/* ─── PENDING REVIEWS TAB ──────────────────────────────────── */}
                 {activeTab === 'registrations' && (() => {
-                    // All merch orders (pending, approved, rejected) for reference
-                    const allMerchOrders = participants.filter(p => p.eventId?.type === 'merchandise' || event.type === 'merchandise'
-                        ? (p.paymentStatus === 'pending_approval' || p.paymentStatus === 'completed' || p.paymentStatus === 'rejected' || p.status === 'Approved' || p.status === 'Rejected')
-                        : false
-                    );
-                    // For non-merch events, show all merch-like orders
+                    // Merch orders: only relevant when the event itself is merchandise type
                     const merchOrders = event.type === 'merchandise'
-                        ? participants.filter(p => p.paymentStatus === 'pending_approval' || p.paymentStatus === 'completed' || p.paymentStatus === 'rejected' || p.status === 'Approved' || p.status === 'Rejected' || p.status === 'pending_payment')
+                        ? participants.filter(p =>
+                            p.paymentStatus === 'pending_approval' ||
+                            p.paymentStatus === 'completed' ||
+                            p.paymentStatus === 'rejected' ||
+                            p.status === 'Approved' ||
+                            p.status === 'Rejected' ||
+                            p.status === 'pending_payment')
                         : [];
 
-                    const normalPending = participants.filter(p => p.status === 'pending' && p.paymentStatus !== 'pending_approval' && event.type !== 'merchandise');
+                    // Normal event pending registrations (not merch)
+                    const normalPending = event.type !== 'merchandise'
+                        ? participants.filter(p => p.status === 'pending' && p.paymentStatus !== 'pending_approval')
+                        : [];
                     const pendingMerch = merchOrders.filter(p => p.paymentStatus === 'pending_approval');
 
                     return (
@@ -657,7 +661,7 @@ const OrganizerEventDetails = () => {
                             )}
 
                             {/* All caught up */}
-                            {totalPendingCount === 0 && event.type !== 'merchandise' && (
+                            {totalPendingCount === 0 && pendingMerch.length === 0 && normalPending.length === 0 && (
                                 <div style={{ textAlign: 'center', padding: '64px 0', color: '#9ca3af' }}>
                                     <p style={{ fontSize: '2rem', marginBottom: '8px' }}>✅</p>
                                     <p style={{ fontWeight: 700, color: '#6b7280' }}>All caught up!</p>

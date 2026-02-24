@@ -74,10 +74,9 @@ const TicketModal = ({ ticket, onClose }) => {
                         ) : (
                             <div className="text-center p-4 w-full">
                                 {isPendingApproval ? (
-                                    <div className="text-yellow-600">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        <p className="font-bold">Pending Approval</p>
-                                        <p className="text-xs">Your registration is being reviewed by the organizer.</p>
+                                    <div style={{ padding: '16px', background: '#fffbeb', borderRadius: '12px', border: '1.5px solid #fcd34d' }}>
+                                        <p style={{ fontWeight: 800, color: '#92400e', margin: '0 0 4px', fontSize: '0.9rem' }}>⏳ Pending Approval</p>
+                                        <p style={{ fontSize: '0.78rem', color: '#b45309', margin: 0 }}>Your registration is being reviewed by the organizer.</p>
                                     </div>
                                 ) : showUpload ? (
                                     <div className="space-y-2">
@@ -140,7 +139,7 @@ const TicketModal = ({ ticket, onClose }) => {
 
                 {/* Footer */}
                 <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 flex flex-col gap-4">
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 items-center">
                         {/* Only show Print Ticket for approved/registered/attended tickets */}
                         {['Approved', 'Successful', 'registered', 'attended'].includes(ticket.status) && (
                             <button
@@ -210,9 +209,7 @@ const TicketModal = ({ ticket, onClose }) => {
                         >
                             Close
                         </button>
-                    </div>
-                    <div className="flex justify-center">
-                        <AddToCalendarButton event={event} className="w-full" />
+                        <AddToCalendarButton event={event} compact />
                     </div>
                 </div>
             </div>

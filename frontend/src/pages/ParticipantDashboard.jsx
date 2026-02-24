@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import api from '../api/axios';
+import AddToCalendarButton from '../components/AddToCalendarButton';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import TicketModal from '../components/TicketModal';
 import { downloadICS } from '../utils/calendar';
@@ -365,12 +366,15 @@ const ParticipantDashboard = () => {
                                     </div>
 
                                     <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-2">
-                                        <button
-                                            onClick={() => setSelectedTicket(ticket)}
-                                            className="text-sm font-bold text-purple-600 hover:text-purple-700 transition-colors"
-                                        >
-                                            View Ticket
-                                        </button>
+                                        <div className="flex items-center gap-4">
+                                            <button
+                                                onClick={() => setSelectedTicket(ticket)}
+                                                className="text-sm font-bold text-purple-600 hover:text-purple-700 transition-colors"
+                                            >
+                                                View Ticket
+                                            </button>
+                                            <AddToCalendarButton event={ticket.eventId} compact />
+                                        </div>
                                         {/* Download ticket for approved merch orders */}
                                         {isMerch && isApproved && (
                                             <button

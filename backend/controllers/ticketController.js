@@ -112,6 +112,53 @@ const registerForEvent = async (req, res) => {
 
         await newTicket.save();
 
+        // Send registration confirmation email
+        try {
+            const participant = await User.findById(userId);
+            if (participant) {
+                const emailHtml = isMerch ? `
+                    <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px">
+                        <div style="background:linear-gradient(135deg,#6d28d9,#7c3aed);padding:24px;border-radius:16px 16px 0 0;text-align:center">
+                            <h1 style="color:white;margin:0;font-size:1.4rem">📦 Order Placed!</h1>
+                        </div>
+                        <div style="background:white;padding:24px;border-radius:0 0 16px 16px;border:1px solid #e5e7eb">
+                            <h2 style="color:#111827;margin:0 0 8px">${event.name}</h2>
+                            <p style="color:#6b7280;margin:0 0 16px">Your order has been placed successfully.</p>
+                            <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:12px 16px;margin-bottom:16px">
+                                <p style="margin:0;font-weight:bold;color:#92400e;font-size:0.85rem">⏳ Next Step: Upload Payment Proof</p>
+                                <p style="margin:4px 0 0;color:#b45309;font-size:0.8rem">Please log in to your dashboard and upload a screenshot of your payment.</p>
+                            </div>
+                            <p style="color:#9ca3af;font-size:0.8rem;margin:0"><strong>Ticket ID:</strong> ${ticketId}</p>
+                        </div>
+                    </div>
+                ` : `
+                    <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px">
+                        <div style="background:linear-gradient(135deg,#6d28d9,#7c3aed);padding:24px;border-radius:16px 16px 0 0;text-align:center">
+                            <h1 style="color:white;margin:0;font-size:1.4rem">🎫 Registration Submitted!</h1>
+                        </div>
+                        <div style="background:white;padding:24px;border-radius:0 0 16px 16px;border:1px solid #e5e7eb">
+                            <h2 style="color:#111827;margin:0 0 8px">${event.name}</h2>
+                            <p style="color:#6b7280;margin:0 0 16px">Your registration has been submitted successfully.</p>
+                            <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:12px 16px;margin-bottom:16px">
+                                <p style="margin:0;font-weight:bold;color:#92400e;font-size:0.85rem">⏳ Awaiting Organizer Approval</p>
+                                <p style="margin:4px 0 0;color:#b45309;font-size:0.8rem">You'll receive an email once the organizer reviews your registration.</p>
+                            </div>
+                            <p style="color:#9ca3af;font-size:0.8rem;margin:0"><strong>Ticket ID:</strong> ${ticketId}</p>
+                            ${isPaid ? '<p style="color:#9ca3af;font-size:0.8rem;margin:4px 0 0"><strong>Fee:</strong> ₹' + event.registrationFee + '</p>' : ''}
+                        </div>
+                    </div>
+                `;
+
+                await sendEmail({
+                    email: participant.email,
+                    subject: isMerch ? `📦 Order Placed — ${event.name}` : `🎫 Registration Submitted — ${event.name}`,
+                    message: emailHtml
+                });
+            }
+        } catch (emailErr) {
+            console.error('Registration email error (non-critical):', emailErr.message);
+        }
+
         res.status(201).json({
             message: isMerch
                 ? 'Order placed! Please upload your payment proof to complete the purchase.'
@@ -213,6 +260,7 @@ const getEventParticipants = async (req, res) => {
 
         const tickets = await Ticket.find({ eventId })
             .populate('participantId', 'firstName lastName email contactNumber')
+            .populate('eventId', 'name type registrationFee')
             .sort({ createdAt: -1 });
 
         res.json(tickets);
@@ -537,19 +585,125 @@ const acceptRegistration = async (req, res) => {
 
         await ticket.save();
 
-        // Send email
+        // Send email with QR code attachment
         const participant = await User.findById(ticket.participantId);
         if (participant) {
-            await sendEmail({
-                email: participant.email,
-                subject: `Registration Approved - ${event.name}`,
-                message: `
-                    <h1>Registration Approved!</h1>
-                    <p>Your registration for <strong>${event.name}</strong> has been approved.</p>
-                    <p><strong>Ticket ID:</strong> ${ticket.ticketId}</p>
-                    <p>Please log in to your dashboard to view your ticket and QR code.</p>
-                `
-            });
+            try {
+                const qrBuffer = await QRCode.toBuffer(ticket.ticketId, {
+                    type: 'png',
+                    width: 300,
+                    margin: 2,
+                    color: { dark: '#1a1a2e', light: '#ffffff' }
+                });
+
+                const qrDataUrl = `data:image/png;base64,${qrBuffer.toString('base64')}`;
+
+                const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Ticket - ${event.name}</title></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f9fafb">
+  <div style="background:linear-gradient(135deg,#6d28d9,#7c3aed);padding:32px;border-radius:20px 20px 0 0;text-align:center">
+    <h1 style="color:white;margin:0;font-size:1.8rem">🎫 Registration Approved!</h1>
+    <p style="color:#e9d5ff;margin:8px 0 0">You're all set for this event</p>
+  </div>
+  <div style="background:white;padding:32px;border-radius:0 0 20px 20px;border:1px solid #e5e7eb">
+    <h2 style="color:#111827;margin:0 0 4px">${event.name}</h2>
+    <p style="color:#6b7280;margin:0 0 24px;font-size:0.9rem">${event.description || ''}</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Ticket ID</td><td style="padding:8px 0;font-weight:bold;color:#111827;font-family:monospace">${ticket.ticketId}</td></tr>
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Name</td><td style="padding:8px 0;font-weight:bold;color:#111827">${participant.firstName} ${participant.lastName}</td></tr>
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Email</td><td style="padding:8px 0;color:#111827">${participant.email}</td></tr>
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Date</td><td style="padding:8px 0;color:#111827">${event.startDate ? new Date(event.startDate).toLocaleDateString() : 'TBA'}</td></tr>
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Fee</td><td style="padding:8px 0;font-weight:bold;color:#6d28d9">${event.registrationFee ? '\u20b9' + event.registrationFee : 'Free'}</td></tr>
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:0.8rem;font-weight:bold;text-transform:uppercase">Status</td><td style="padding:8px 0;font-weight:bold;color:#059669">\u2713 Approved</td></tr>
+    </table>
+    <div style="text-align:center;padding:20px;background:#f5f3ff;border-radius:12px;border:2px dashed #c4b5fd">
+      <p style="color:#6d28d9;font-weight:bold;margin:0 0 12px;font-size:0.85rem">SCAN QR CODE AT EVENT</p>
+      <img src="cid:qrcode" alt="QR Code" style="width:200px;height:200px" />
+      <p style="color:#9ca3af;font-size:0.75rem;margin:12px 0 0">Ticket ID: ${ticket.ticketId}</p>
+    </div>
+    <p style="color:#6b7280;font-size:0.8rem;margin-top:24px;text-align:center">📎 Your QR code is also attached to this email.</p>
+    <p style="color:#6b7280;font-size:0.8rem;text-align:center">You can also view your ticket from your dashboard.</p>
+  </div>
+</body>
+</html>`;
+
+                // Standalone ticket HTML attachment
+                const ticketHtmlAttachment = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Ticket \u2014 ${event.name}</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; }
+    .ticket { max-width: 520px; margin: 0 auto; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 32px rgba(109,40,217,0.15); }
+    .header { background: linear-gradient(135deg,#6d28d9,#7c3aed); padding: 32px; text-align: center; }
+    .header h1 { color: white; margin: 0; font-size: 1.6rem; }
+    .header p { color: #e9d5ff; margin: 8px 0 0; font-size: 0.9rem; }
+    .body { background: white; padding: 32px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    td { padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 0.9rem; }
+    td:first-child { color: #9ca3af; font-weight: bold; text-transform: uppercase; font-size: 0.75rem; width: 40%; }
+    td:last-child { color: #111827; font-weight: 600; }
+    .qr-box { text-align: center; padding: 24px; background: #f5f3ff; border-radius: 16px; border: 2px dashed #c4b5fd; }
+    .qr-box p { color: #6d28d9; font-weight: bold; margin: 0 0 16px; font-size: 0.85rem; }
+    .qr-box img { width: 200px; height: 200px; }
+    .footer { background: #f9fafb; padding: 16px 32px; text-align: center; font-size: 0.75rem; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="ticket">
+    <div class="header"><h1>🎫 Registration Approved!</h1><p>You're all set</p></div>
+    <div class="body">
+      <h2 style="color:#111827;margin:0 0 4px">${event.name}</h2>
+      <p style="color:#6b7280;font-size:0.85rem;margin:0 0 24px">${event.description || ''}</p>
+      <table>
+        <tr><td>Ticket ID</td><td style="font-family:monospace">${ticket.ticketId}</td></tr>
+        <tr><td>Name</td><td>${participant.firstName} ${participant.lastName}</td></tr>
+        <tr><td>Email</td><td>${participant.email}</td></tr>
+        <tr><td>Date</td><td>${event.startDate ? new Date(event.startDate).toLocaleDateString() : 'TBA'}</td></tr>
+        <tr><td>Fee</td><td style="color:#6d28d9;font-weight:bold">${event.registrationFee ? '\u20b9' + event.registrationFee : 'Free'}</td></tr>
+        <tr><td>Status</td><td style="color:#059669;font-weight:bold">\u2713 Approved</td></tr>
+      </table>
+      <div class="qr-box">
+        <p>SCAN QR CODE AT EVENT</p>
+        <img src="${qrDataUrl}" alt="QR Code" />
+        <p style="font-size:0.75rem;color:#9ca3af;margin:12px 0 0">Ticket ID: ${ticket.ticketId}</p>
+      </div>
+    </div>
+    <div class="footer">Present this ticket at the event \u2022 Generated by Evently</div>
+  </div>
+</body>
+</html>`;
+
+                await sendEmail({
+                    email: participant.email,
+                    subject: `\u2705 Registration Approved \u2014 ${event.name}`,
+                    message: emailHtml,
+                    attachments: [
+                        {
+                            filename: `qr-${ticket.ticketId}.png`,
+                            content: qrBuffer,
+                            contentType: 'image/png',
+                            cid: 'qrcode'
+                        },
+                        {
+                            filename: `qr-code-${ticket.ticketId}.png`,
+                            content: qrBuffer,
+                            contentType: 'image/png'
+                        },
+                        {
+                            filename: `ticket-${ticket.ticketId}.html`,
+                            content: Buffer.from(ticketHtmlAttachment, 'utf-8'),
+                            contentType: 'text/html'
+                        }
+                    ]
+                });
+            } catch (emailErr) {
+                console.error('Approval email error (non-critical):', emailErr.message);
+            }
         }
 
         res.json({ message: 'Registration accepted successfully', ticket });
