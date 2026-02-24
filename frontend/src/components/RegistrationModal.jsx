@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 import api from '../api/axios';
 
 const RegistrationModal = ({ event, onClose, onSubmit, submitting }) => {
@@ -25,7 +26,7 @@ const RegistrationModal = ({ event, onClose, onSubmit, submitting }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (uploadingField) {
-            alert("Please wait for the file to finish uploading.");
+            toast.warning("Please wait for the file to finish uploading.");
             return;
         }
 
@@ -33,7 +34,7 @@ const RegistrationModal = ({ event, onClose, onSubmit, submitting }) => {
         if (event.type === 'merchandise' && event.merchandiseVariants) {
             const missing = event.merchandiseVariants.find(v => !responses.variants?.[v.category]);
             if (missing) {
-                alert(`Please select ${missing.category}`);
+                toast.warning(`Please select ${missing.category}`);
                 return;
             }
         }
@@ -57,7 +58,7 @@ const RegistrationModal = ({ event, onClose, onSubmit, submitting }) => {
             handleChange(label, res.data.url);
         } catch (error) {
             console.error('Upload failed:', error);
-            alert('File upload failed. Please try again.');
+            toast.error('File upload failed. Please try again.');
         } finally {
             setUploadingField(null);
         }

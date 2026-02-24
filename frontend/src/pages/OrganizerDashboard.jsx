@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { toast } from 'react-toastify';
 import Carousel from '../components/Carousel';
 
 const OrganizerDashboard = () => {
@@ -33,9 +34,9 @@ const OrganizerDashboard = () => {
             await api.put(`/tickets/${ticketId}/approve`);
             fetchPendingVerifications(); // Refresh list
             fetchMyEvents(); // Refresh stats/analytics if needed
-            alert('Order Approved');
+            toast.success('Order Approved');
         } catch (error) {
-            alert(error.response?.data?.message || 'Approval failed');
+            toast.error(error.response?.data?.message || 'Approval failed');
         }
     };
 
@@ -44,9 +45,9 @@ const OrganizerDashboard = () => {
         try {
             await api.put(`/tickets/${ticketId}/reject`);
             fetchPendingVerifications();
-            alert('Order Rejected');
+            toast.success('Order Rejected');
         } catch (error) {
-            alert(error.response?.data?.message || 'Rejection failed');
+            toast.error(error.response?.data?.message || 'Rejection failed');
         }
     };
 
@@ -99,7 +100,7 @@ const OrganizerDashboard = () => {
             await api.put(`/events/${id}`, { status: 'published' });
             fetchMyEvents();
         } catch (error) {
-            alert('Error publishing event');
+            toast.error('Error publishing event');
         }
     };
 

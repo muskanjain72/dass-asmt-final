@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -97,14 +98,15 @@ const OrganizerProfile = () => {
     }, [user, id]);
 
     const handleFollowToggle = async () => {
-        if (!user) { alert('Please login to follow clubs'); return; }
+        if (!user) { toast.warning('Please login to follow clubs'); return; }
         setFollowLoading(true);
         try {
             const { data } = await api.put(`/users/organizers/${id}/follow`);
             setIsFollowed(!isFollowed);
+            toast.success(isFollowed ? 'Unfollowed successfully' : 'Followed successfully');
             updateUser({ followedOrganizers: data.followedOrganizers });
         } catch (e) {
-            alert('Error updating follow status');
+            toast.error('Error updating follow status');
         } finally {
             setFollowLoading(false);
         }
@@ -122,10 +124,10 @@ const OrganizerProfile = () => {
             });
             setOrganizer({ ...organizer, ...data });
             setEditMode(false);
-            alert('Profile updated successfully!');
+            toast.success('Profile updated successfully!');
         } catch (e) {
             console.error(e);
-            alert(e.response?.data?.message || 'Error updating profile');
+            toast.error(e.response?.data?.message || 'Error updating profile');
         } finally {
             setSaving(false);
         }

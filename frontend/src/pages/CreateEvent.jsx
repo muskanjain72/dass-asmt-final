@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../api/axios';
 
 const CreateEvent = () => {
@@ -75,7 +76,7 @@ const CreateEvent = () => {
             });
         } catch (error) {
             console.error("Error fetching event for edit", error);
-            alert("Error loading event data");
+            toast.error("Error loading event data");
         }
     };
 
@@ -118,16 +119,16 @@ const CreateEvent = () => {
 
             if (editMode && formData._id) {
                 await api.put(`/events/${formData._id}`, payload);
-                alert('Event Updated Successfully!');
+                toast.success('Event Updated Successfully!');
                 navigate(`/organizer/event/${formData._id}`);
             } else {
                 await api.post('/events', payload);
-                alert('Event Draft Created Successfully!');
+                toast.success('Event Draft Created Successfully!');
                 navigate('/organizer/dashboard');
             }
         } catch (error) {
             console.error("Error saving event", error);
-            alert(error.response?.data?.message || 'Error saving event');
+            toast.error(error.response?.data?.message || 'Error saving event');
         } finally {
             setSubmitting(false);
         }

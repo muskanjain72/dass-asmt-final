@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../api/axios';
+import { toast } from 'react-toastify';
 import AddToCalendarButton from './AddToCalendarButton';
 
 const TicketModal = ({ ticket, onClose }) => {
@@ -15,7 +16,7 @@ const TicketModal = ({ ticket, onClose }) => {
 
     const handleUpload = async () => {
         if (!file) {
-            alert("Please select a file first");
+            toast.warning("Please select a file first");
             return;
         }
 
@@ -27,11 +28,11 @@ const TicketModal = ({ ticket, onClose }) => {
             await api.post(`/tickets/${ticket._id}/payment-proof`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            alert('Payment proof uploaded successfully! Awaiting approval.');
-            window.location.reload(); // Simple refresh to show updated status
+            toast.success('Payment proof uploaded successfully! Awaiting approval.');
+            setTimeout(() => window.location.reload(), 2000); // Small delay to show toast
         } catch (error) {
             console.error(error);
-            alert('Failed to upload proof.');
+            toast.error('Failed to upload proof.');
         } finally {
             setUploading(false);
         }

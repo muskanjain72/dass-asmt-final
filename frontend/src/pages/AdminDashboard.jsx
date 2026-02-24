@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 import api from '../api/axios';
 
 const AdminDashboard = () => {
@@ -23,7 +24,7 @@ const AdminDashboard = () => {
     useEffect(() => {
         // Safety check: Ensure only admins can stay on this page
         if (user && user.role !== 'admin') {
-            alert('Access Denied: You do not have admin privileges.');
+            toast.error('Access Denied: You do not have admin privileges.');
             navigate('/');
             return;
         }
@@ -75,7 +76,7 @@ const AdminDashboard = () => {
             setNewOrg({ organizerName: '', category: '', description: '', contactEmail: '' });
             fetchOrganizers(); // Refresh list
         } catch (error) {
-            alert('Error creating organizer');
+            toast.error('Error creating organizer');
         } finally {
             setCreating(false);
         }
@@ -87,7 +88,7 @@ const AdminDashboard = () => {
             await api.delete(`/admin/organizers/${id}`);
             fetchOrganizers();
         } catch (error) {
-            alert('Error deleting organizer');
+            toast.error('Error deleting organizer');
         }
     };
     const handleToggleStatus = async (id) => {
@@ -97,11 +98,11 @@ const AdminDashboard = () => {
         } catch (error) {
             const msg = error.response?.data?.message || 'Error updating status';
             if (error.response?.status === 403 && msg.includes('role organizer')) {
-                alert('Session Mismatch: You appear to be logged in as an Organizer. Please log back in as Admin.');
+                toast.warning('Session Mismatch: You appear to be logged in as an Organizer. Please log back in as Admin.');
                 logout();
                 navigate('/login');
             } else {
-                alert(msg);
+                toast.error(msg);
             }
         }
     };
@@ -110,19 +111,15 @@ const AdminDashboard = () => {
         const comments = window.prompt("Optional Admin Comments:");
         try {
             const { data } = await api.put(`/admin/reset-requests/${id}`, { status, comments });
-            alert(data.message);
+            toast.success(data.message);
             fetchRequests();
         } catch (error) {
-            alert(error.response?.data?.message || 'Action failed');
+            toast.error(error.response?.data?.message || 'Action failed');
         }
     };
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
-            <header className="mb-10 text-center">
-                <h1 className="dashboard-title">System Administration</h1>
-                <p className="dashboard-subtitle">Manage organizer accounts and handle system-wide recovery requests</p>
-            </header>
 
             {activeTab === 'dashboard' ? (
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -197,7 +194,7 @@ const AdminDashboard = () => {
                                                 <p style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', color: '#9ca3af', margin: 0 }}>Login Email</p>
                                                 <p style={{ fontFamily: 'monospace', color: '#111827', margin: 0, fontSize: '1.2rem' }}>{createdCredentials.loginEmail}</p>
                                             </div>
-                                            <button onClick={() => { navigator.clipboard.writeText(createdCredentials.loginEmail); alert('Email Copied!'); }} style={{ color: '#2563eb', padding: '8px', borderRadius: '8px', border: 'none', background: 'none', cursor: 'pointer' }}>
+                                            <button onClick={() => { navigator.clipboard.writeText(createdCredentials.loginEmail); toast.info('Email Copied!'); }} style={{ color: '#2563eb', padding: '8px', borderRadius: '8px', border: 'none', background: 'none', cursor: 'pointer' }}>
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                             </button>
                                         </div>
@@ -206,7 +203,7 @@ const AdminDashboard = () => {
                                                 <p style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', color: '#9ca3af', margin: 0 }}>Generated Password</p>
                                                 <p style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#111827', margin: 0, fontSize: '1.2rem' }}>{createdCredentials.loginPassword}</p>
                                             </div>
-                                            <button onClick={() => { navigator.clipboard.writeText(createdCredentials.loginPassword); alert('Password Copied!'); }} style={{ color: '#2563eb', padding: '8px', borderRadius: '8px', border: 'none', background: 'none', cursor: 'pointer' }}>
+                                            <button onClick={() => { navigator.clipboard.writeText(createdCredentials.loginPassword); toast.info('Password Copied!'); }} style={{ color: '#2563eb', padding: '8px', borderRadius: '8px', border: 'none', background: 'none', cursor: 'pointer' }}>
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                             </button>
                                         </div>

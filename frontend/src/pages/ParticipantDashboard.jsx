@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'react-toastify';
 import AddToCalendarButton from '../components/AddToCalendarButton';
 import api from '../api/axios';
 import { Link } from 'react-router-dom';
@@ -157,7 +158,7 @@ const PaymentProofUploader = ({ ticket, onUploaded }) => {
             setDone(true);
             onUploaded();
         } catch (e) {
-            alert(e.response?.data?.message || 'Upload failed. Please try again.');
+            toast.error(e.response?.data?.message || 'Upload failed. Please try again.');
         } finally {
             setUploading(false);
         }

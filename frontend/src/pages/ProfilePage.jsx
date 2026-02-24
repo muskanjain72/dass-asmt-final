@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 import api from '../api/axios';
 
 const ProfilePage = () => {
@@ -74,7 +75,7 @@ const ProfilePage = () => {
             const updatedFollowed = user.followedOrganizers.filter(oid => oid !== id);
             updateUser({ followedOrganizers: updatedFollowed });
         } catch (err) {
-            alert("Error unfollowing club");
+            toast.error("Error unfollowing club");
         }
     };
 

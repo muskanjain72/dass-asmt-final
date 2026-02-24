@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 
 // ─── Category color map ───────────────────────────────────────────────────────
@@ -154,15 +155,16 @@ const ClubList = () => {
 
     const handleFollowToggle = async (organizerId) => {
         if (!user) {
-            alert('Please login to follow clubs');
+            toast.warning('Please login to follow clubs');
             return;
         }
         try {
             const { data } = await api.put(`/users/organizers/${organizerId}/follow`);
             setFollowedIds(data.followedOrganizers);
+            toast.success('Follow status updated');
             updateUser({ followedOrganizers: data.followedOrganizers });
         } catch (e) {
-            alert('Error updating follow status');
+            toast.error('Error updating follow status');
         }
     };
 

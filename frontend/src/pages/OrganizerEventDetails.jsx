@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import api from '../api/axios';
 import QRScanner from './QRScanner';
 import Forum from '../components/Forum';
@@ -54,71 +55,71 @@ const OrganizerEventDetails = () => {
     };
 
     const handleStatusUpdate = async (newStatus) => {
-        if (!window.confirm(`Change status to ${newStatus}?`)) return;
         try {
             await api.put(`/events/${id}`, { status: newStatus });
+            toast.success(`Status updated to ${newStatus}`);
             fetchEventData();
         } catch (error) {
-            alert('Error updating status');
+            toast.error('Error updating status');
         }
     };
 
     const handleAcceptRegistration = async (ticketId) => {
-        if (!window.confirm('Accept this registration?')) return;
         try {
             await api.put(`/tickets/${ticketId}/accept`);
+            toast.success('Registration accepted');
             fetchEventData();
             setSelectedTicket(null);
         } catch (error) {
-            alert(error.response?.data?.message || 'Error accepting registration');
+            toast.error(error.response?.data?.message || 'Error accepting registration');
         }
     };
 
     const handleRejectRegistration = async (ticketId) => {
-        if (!reviewing && !window.confirm('Reject this registration?')) return;
         try {
             await api.put(`/tickets/${ticketId}/reject`);
+            toast.success('Registration rejected');
             fetchEventData();
             setSelectedTicket(null);
         } catch (error) {
-            alert(error.response?.data?.message || 'Error rejecting registration');
+            toast.error(error.response?.data?.message || 'Error rejecting registration');
         }
     };
 
     const handleApprovePayment = async (ticketMongoId) => {
-        if (!window.confirm('Approve this payment? This will decrement stock and generate a QR code for the participant.')) return;
         setActionLoading(ticketMongoId);
         try {
             await api.put(`/tickets/${ticketMongoId}/approve`);
+            toast.success('Payment approved');
             fetchEventData();
         } catch (error) {
-            alert(error.response?.data?.message || 'Error approving payment');
+            toast.error(error.response?.data?.message || 'Error approving payment');
         } finally {
             setActionLoading(null);
         }
     };
 
     const handleRejectPayment = async (ticketMongoId) => {
-        if (!window.confirm('Reject this payment proof? The participant will be notified by email.')) return;
         setActionLoading(ticketMongoId);
         try {
             await api.put(`/tickets/${ticketMongoId}/reject-payment`);
+            toast.success('Payment rejected');
             fetchEventData();
         } catch (error) {
-            alert(error.response?.data?.message || 'Error rejecting payment');
+            toast.error(error.response?.data?.message || 'Error rejecting payment');
         } finally {
             setActionLoading(null);
         }
     };
 
     const handleMarkAttendance = async (ticketId) => {
-        if (!window.confirm('Manually mark this participant as attended?')) return;
         try {
             await api.post('/tickets/scan', { manualTicketId: ticketId, eventId: id });
+            toast.success('Attendance marked');
             fetchEventData();
         } catch (error) {
             console.error("Error marking attendance", error);
-            alert(error.response?.data?.message || 'Error marking attendance');
+            toast.error(error.response?.data?.message || 'Error marking attendance');
         }
     };
 
@@ -134,7 +135,7 @@ const OrganizerEventDetails = () => {
             link.remove();
         } catch (error) {
             console.error("Error exporting attendance", error);
-            alert('Error exporting attendance data.');
+            toast.error('Error exporting attendance data.');
         }
     };
 
