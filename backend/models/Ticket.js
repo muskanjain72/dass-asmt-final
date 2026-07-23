@@ -53,5 +53,11 @@ const ticketSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+// Prevent multiple active registrations for the same user and event
+ticketSchema.index(
+    { participantId: 1, eventId: 1 },
+    { unique: true, partialFilterExpression: { status: { $ne: 'cancelled' } } }
+);
+
 const Ticket = mongoose.model('Ticket', ticketSchema);
 module.exports = Ticket;

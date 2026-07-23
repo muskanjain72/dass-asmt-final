@@ -23,7 +23,7 @@ Campus Event Hub is a full-stack web application built with the MERN (MongoDB, E
 ## ✨ Key Features
 
 ### For Participants
-- **Event Discovery:** Browse a rich list of upcoming campus events, filterable by category, date, and eligibility.
+- **Event Discovery:** Browse a rich list of upcoming campus events, filterable by category, date, and eligibility.ma
 - **Seamless Registration:** Register for events with a single click and fill out custom registration forms.
 - **Personalized Dashboard:** View all registered events, tickets, and event history in one place.
 - **Calendar Integration:** Export event details to your personal calendar (ICS format).

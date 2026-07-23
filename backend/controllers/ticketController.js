@@ -37,6 +37,9 @@ const registerForEvent = async (req, res) => {
         if (event.registrationDeadline && now > event.registrationDeadline) {
             return res.status(400).json({ message: 'Registration deadline has passed' });
         }
+        if (event.endDate && now > event.endDate) {
+            return res.status(400).json({ message: 'Event has already ended' });
+        }
 
         // 3. Check Duplicate Registration
         const existingTicket = await Ticket.findOne({ participantId: userId, eventId: eventId, status: { $ne: 'cancelled' } });
@@ -106,8 +109,18 @@ const registerForEvent = async (req, res) => {
 
         // 7. Update counts — stock is only decremented on payment approval for merch
         if (!isMerch && event.type === 'normal') {
-            event.registeredCount += 1;
-            await event.save();
+            if (event.registrationLimit > 0) {
+                const updatedEvent = await Event.findOneAndUpdate(
+                    { _id: eventId, registeredCount: { $lt: event.registrationLimit } },
+                    { $inc: { registeredCount: 1 } },
+                    { new: true }
+                );
+                if (!updatedEvent) {
+                    return res.status(400).json({ message: 'Registration full' });
+                }
+            } else {
+                await Event.findByIdAndUpdate(eventId, { $inc: { registeredCount: 1 } });
+            }
         }
 
         await newTicket.save();
@@ -231,8 +244,10 @@ const cancelTicket = async (req, res) => {
         // Restore Event Counts (Normal only, Merch stock wasn't dec yet unless approved)
         const event = await Event.findById(ticket.eventId);
         if (event && event.type === 'normal') {
-            event.registeredCount = Math.max(0, event.registeredCount - 1);
-            await event.save();
+            await Event.updateOne(
+                { _id: event._id, registeredCount: { $gt: 0 } },
+                { $inc: { registeredCount: -1 } }
+            );
         }
 
         res.json({ message: 'Ticket cancelled successfully' });
@@ -343,11 +358,15 @@ const approveOrder = async (req, res) => {
 
         // Decrement stock for merchandise
         if (event.type === 'merchandise') {
-            if (event.merchandiseStock <= 0) {
+            const quantity = ticket.purchaseData?.quantity || 1;
+            const updatedEvent = await Event.findOneAndUpdate(
+                { _id: event._id, merchandiseStock: { $gte: quantity } },
+                { $inc: { merchandiseStock: -quantity } },
+                { new: true }
+            );
+            if (!updatedEvent) {
                 return res.status(400).json({ message: 'Stock exhausted, cannot approve.' });
             }
-            event.merchandiseStock = Math.max(0, event.merchandiseStock - (ticket.purchaseData?.quantity || 1));
-            await event.save();
         }
 
         ticket.paymentStatus = 'completed';
@@ -568,11 +587,14 @@ const acceptRegistration = async (req, res) => {
 
         // Handle merchandise stock if it's a merch event
         if (event.type === 'merchandise') {
-            if (event.merchandiseStock <= 0) {
+            const updatedEvent = await Event.findOneAndUpdate(
+                { _id: event._id, merchandiseStock: { $gte: 1 } },
+                { $inc: { merchandiseStock: -1 } },
+                { new: true }
+            );
+            if (!updatedEvent) {
                 return res.status(400).json({ message: 'Stock exhausted, cannot accept.' });
             }
-            event.merchandiseStock = Math.max(0, event.merchandiseStock - 1);
-            await event.save();
         }
 
         ticket.status = 'Approved';
@@ -726,6 +748,14 @@ const rejectRegistration = async (req, res) => {
         const event = ticket.eventId;
         if (event.organizer.toString() !== req.user._id.toString()) {
             return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        // Decrement registered count if we are rejecting a normal event registration
+        if (event.type === 'normal' && ticket.status !== 'Rejected' && ticket.status !== 'cancelled') {
+            await Event.updateOne(
+                { _id: event._id, registeredCount: { $gt: 0 } },
+                { $inc: { registeredCount: -1 } }
+            );
         }
 
         ticket.status = 'Rejected';

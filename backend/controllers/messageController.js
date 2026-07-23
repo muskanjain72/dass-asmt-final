@@ -58,30 +58,31 @@ const reactToMessage = async (req, res) => {
 
         if (!message.reactions) message.reactions = new Map();
 
-        const userReactions = message.reactions.get(emoji) || [];
+        const userReactions = message.reactions ? message.reactions.get(emoji) || [] : [];
         const index = userReactions.indexOf(req.user._id.toString());
 
+        let updatedMessage;
+        
         if (index > -1) {
-            // Remove reaction
-            userReactions.splice(index, 1);
+            // Remove reaction atomically
+            updatedMessage = await Message.findByIdAndUpdate(
+                req.params.id,
+                { $pull: { [`reactions.${emoji}`]: req.user._id } },
+                { new: true }
+            ).populate('senderId', 'firstName lastName role');
         } else {
-            // Add reaction
-            userReactions.push(req.user._id);
+            // Add reaction atomically
+            updatedMessage = await Message.findByIdAndUpdate(
+                req.params.id,
+                { $addToSet: { [`reactions.${emoji}`]: req.user._id } },
+                { new: true }
+            ).populate('senderId', 'firstName lastName role');
         }
 
-        if (userReactions.length === 0) {
-            message.reactions.delete(emoji);
-        } else {
-            message.reactions.set(emoji, userReactions);
-        }
-
-        await message.save();
-
-        const populated = await Message.findById(message._id).populate('senderId', 'firstName lastName role');
         const io = req.app.get('io');
-        io.to(message.eventId.toString()).emit('message_updated', populated);
+        io.to(updatedMessage.eventId.toString()).emit('message_updated', updatedMessage);
 
-        res.json(populated);
+        res.json(updatedMessage);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

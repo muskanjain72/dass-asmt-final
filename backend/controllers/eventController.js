@@ -22,6 +22,14 @@ const createEvent = async (req, res) => {
             merchandiseStock, merchandiseVariants, purchaseLimit, formSchema
         } = req.body;
 
+        // Date Validations
+        if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
+            return res.status(400).json({ message: 'End date must be after start date.' });
+        }
+        if (startDate && registrationDeadline && new Date(registrationDeadline) > new Date(startDate)) {
+            return res.status(400).json({ message: 'Registration deadline must be before or equal to start date.' });
+        }
+
         // Ensure default fields are present
         let finalSchema = [...defaultFormFields];
         if (formSchema && formSchema.length > 0) {
@@ -369,6 +377,14 @@ const updateEvent = async (req, res) => {
         }
 
         if (status) event.status = status;
+
+        // Date Validations before saving
+        if (event.startDate && event.endDate && new Date(event.startDate) >= new Date(event.endDate)) {
+            return res.status(400).json({ message: 'End date must be after start date.' });
+        }
+        if (event.startDate && event.registrationDeadline && new Date(event.registrationDeadline) > new Date(event.startDate)) {
+            return res.status(400).json({ message: 'Registration deadline must be before or equal to start date.' });
+        }
 
         const updatedEvent = await event.save();
         res.json(updatedEvent);
